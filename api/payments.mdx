@@ -20,7 +20,7 @@ Receives payment event notifications from Paystack. Paystack calls this endpoint
 
 This endpoint does not use Bearer token authentication. Instead, it verifies the `x-paystack-signature` header: a HMAC-SHA512 signature of the raw request body signed with your Paystack secret key. Requests with an invalid or missing signature are rejected with `401 Unauthorized`.
 
-```
+```text
 x-paystack-signature: <hmac_sha512_signature>
 ```
 
@@ -96,52 +96,24 @@ When a `charge.success` event is received and verified, Roomie executes the foll
 
 ### `BILL_SPLIT_PAYMENT`
 
-1. The individual `bill_split_items` record is marked `PAID`
-2. If both items in the split are `PAID`, the parent split is marked `SETTLED`
+1. The paying roommate's split item is marked `PAID`
+2. If both roommates' items in the split are `PAID`, the parent split is marked `SETTLED`
 3. The paying user's on-time streak is evaluated for the **Good Payer** badge
 4. A `BILL_SPLIT_PAID` notification is sent to the co-roommate
 
 ## Verifying Webhook Signatures
 
-Validate all incoming webhook requests before processing:
+Before processing any incoming event, verify that the request genuinely originated from Paystack by validating the `x-paystack-signature` header. The signature is a HMAC-SHA512 hex digest of the **raw request body**, signed with your Paystack secret key.
 
-```typescript
-import crypto from "crypto";
+**Validation steps:**
 
-function verifyPaystackSignature(
-  rawBody: Buffer,
-  signature: string,
-  secretKey: string
-): boolean {
-  const hash = crypto
-    .createHmac("sha512", secretKey)
-    .update(rawBody)
-    .digest("hex");
-
-  return hash === signature;
-}
-
-// In your Express/NestJS handler:
-app.post(
-  "/v1/payments/webhook",
-  express.raw({ type: "application/json" }),
-  (req, res) => {
-    const signature = req.headers["x-paystack-signature"] as string;
-    const isValid = verifyPaystackSignature(req.body, signature, process.env.PAYSTACK_SECRET_KEY!);
-
-    if (!isValid) {
-      return res.status(401).json({ message: "Invalid signature" });
-    }
-
-    const event = JSON.parse(req.body.toString());
-    // handle event...
-    res.json({ received: true });
-  }
-);
-```
+1. Read the raw request body as bytes — do **not** pre-parse it as JSON before hashing, as any whitespace or key-ordering change will cause a mismatch.
+2. Compute `HMAC-SHA512(rawBody, paystackSecretKey)` and encode the result as a lowercase hex string.
+3. Compare the computed hex string against the value in the `x-paystack-signature` header using a constant-time comparison.
+4. If they match, the request is authentic — parse the body and process the event. If they do not match, respond with `401` and discard the request.
 
 <Note>
-  Always parse the raw request body (not the JSON-parsed version) when computing the HMAC signature. Middleware that pre-parses JSON may alter whitespace or key ordering, causing signature mismatches.
+  Always use the raw, unparsed request body when computing the HMAC. Consult the [Paystack webhook documentation](https://paystack.com/docs/payments/webhooks/) for language-specific implementation guides and test utilities.
 </Note>
 
 ## Error Reference

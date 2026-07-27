@@ -66,22 +66,25 @@ const data = await response.json();
 
 Once you hold an `access_token`, include it in the `Authorization` header of every request that requires authentication:
 
-```
+```text
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 <CodeGroup>
 ```bash cURL example
-curl https://api.roomie.app/v1/profiles/me \
+curl https://api.roomie.app/v1/profiles/YOUR_PROFILE_UUID \
   -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 ```
 
 ```typescript fetch example
-const profileRes = await fetch("https://api.roomie.app/v1/profiles/me", {
-  headers: {
-    Authorization: `Bearer ${access_token}`,
-  },
-});
+const profileRes = await fetch(
+  "https://api.roomie.app/v1/profiles/YOUR_PROFILE_UUID",
+  {
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+    },
+  }
+);
 
 const profile = await profileRes.json();
 ```

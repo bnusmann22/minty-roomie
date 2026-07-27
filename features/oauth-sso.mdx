@@ -1,7 +1,7 @@
 ---
 title: "Connect with Roomie ID: OAuth SSO for Housing Platforms"
 sidebarTitle: "OAuth SSO"
-description: "Housing providers can integrate Roomie's OAuth SSO to let students sign in with their verified Roomie identity, roommate partner data, and housing credentials."
+description: "Integrate Roomie's OAuth SSO so students sign in with their verified identity, roommate partner data, and housing credentials — no extra forms required."
 ---
 
 Roomie's OAuth 2.0 SSO integration lets students carry their verified identity — student status, roommate partner, budget preferences, and lifestyle data — directly into partner housing platforms without filling in a single extra form. For housing providers, it means instant access to trustworthy, pre-verified tenant pairs at the point of application.
@@ -70,9 +70,9 @@ Roomie's OAuth 2.0 SSO integration lets students carry their verified identity �
     | Credential | Description |
     |---|---|
     | `client_id` | Auto-generated UUID that identifies your platform |
-    | `client_secret` | A hashed secret key used to authenticate token exchange requests — store this securely and never expose it client-side |
-    | `redirect_uris` | The URI(s) Roomie is permitted to redirect users back to after authorization |
-    | `allowed_scopes` | The scopes your platform is permitted to request |
+    | `client_secret` | A secret key used to authenticate token exchange requests — store this securely and never expose it client-side |
+    | Redirect URIs | The callback URL(s) Roomie is permitted to redirect users back to after authorization |
+    | Permitted scopes | The OAuth scopes your platform is approved to request from students |
 
     ### Step 2: Implement the Authorization Code Flow
 

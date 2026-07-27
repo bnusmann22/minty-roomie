@@ -10,13 +10,13 @@ The Roomie REST API is the backbone of the Roomie student co-living ecosystem. I
 
 All REST endpoints are served under the following base URL:
 
-```
+```text
 https://api.roomie.app/v1
 ```
 
 All OAuth endpoints are served under a separate base:
 
-```
+```text
 https://api.roomie.app/api/oauth
 ```
 
@@ -28,7 +28,7 @@ The current stable version of the API is **v1**. Every REST endpoint path begins
 
 All request bodies must be sent as JSON. Set the `Content-Type` header on every mutating request:
 
-```
+```text
 Content-Type: application/json
 ```
 
@@ -38,7 +38,7 @@ CORS is enabled with credentials across all endpoints, so browser-based clients 
 
 Most endpoints require a valid JWT Bearer token obtained from `POST /v1/auth/login`. Pass the token in every request as:
 
-```
+```text
 Authorization: Bearer <your_access_token>
 ```
 
@@ -78,10 +78,10 @@ The Roomie API enforces per-IP and per-token rate limits to ensure fair usage an
 
 ## Your First API Call
 
-The simplest authenticated call you can make is fetching your own profile. First, exchange your credentials for a token, then use it immediately:
+The simplest authenticated call you can make is fetching a student profile. First, exchange your credentials for a token, then use it to retrieve a profile by UUID:
 
 <CodeGroup>
-```bash Login and fetch your profile
+```bash Login and fetch a profile
 # Step 1 — Get a token
 TOKEN=$(curl -s -X POST https://api.roomie.app/v1/auth/login \
   -H "Content-Type: application/json" \
@@ -89,11 +89,11 @@ TOKEN=$(curl -s -X POST https://api.roomie.app/v1/auth/login \
   | jq -r '.access_token')
 
 # Step 2 — Use it
-curl https://api.roomie.app/v1/profiles/me \
+curl https://api.roomie.app/v1/profiles/YOUR_PROFILE_UUID \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-```typescript Login and fetch your profile
+```typescript Login and fetch a profile
 const loginRes = await fetch("https://api.roomie.app/v1/auth/login", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
@@ -105,16 +105,19 @@ const loginRes = await fetch("https://api.roomie.app/v1/auth/login", {
 
 const { access_token } = await loginRes.json();
 
-const profileRes = await fetch("https://api.roomie.app/v1/profiles/me", {
-  headers: { Authorization: `Bearer ${access_token}` },
-});
+const profileRes = await fetch(
+  "https://api.roomie.app/v1/profiles/YOUR_PROFILE_UUID",
+  {
+    headers: { Authorization: `Bearer ${access_token}` },
+  }
+);
 
 const profile = await profileRes.json();
 console.log(profile);
 ```
 </CodeGroup>
 
-A successful response will return your full profile object including your Roomie ID, verification status, preferences, and badge inventory.
+A successful response will return the full profile object including the user's Roomie ID, verification status, preferences, and badge inventory.
 
 ## API Sections
 

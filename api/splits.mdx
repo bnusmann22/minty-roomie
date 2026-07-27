@@ -1,5 +1,5 @@
 ---
-title: "Create and Manage Bill Splits on the Roomie API"
+title: "Split Shared Bills Between Roommates on the Roomie API"
 sidebarTitle: "Splits"
 description: "Split shared expenses like rent, utilities, and wifi between confirmed roommates, with support for custom ratios and recurring monthly billing."
 ---
@@ -157,7 +157,7 @@ const split = await res.json();
 
 ## Split Payment Flow
 
-```
+```text
 POST /v1/splits  ──► Both roommates receive Paystack payment links
                               │
            ┌──────────────────┴──────────────────┐
