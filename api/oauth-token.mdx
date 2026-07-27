@@ -1,0 +1,149 @@
+---
+title: "POST /api/oauth/token — Exchange Code for Token"
+sidebarTitle: "OAuth Token"
+description: "Exchange a Roomie OAuth authorization code for an access token using a server-to-server POST request with your client credentials."
+---
+
+After your user approves access on Roomie's consent screen and you receive an authorization code at your `redirect_uri`, the next step is to exchange that code for an access token. This server-to-server exchange keeps your `client_secret` private — it must never happen in a browser or mobile app. Once you hold an access token, you can call `GET /api/oauth/userinfo` to retrieve the verified student profile.
+
+## POST /api/oauth/token
+
+Exchange an authorization code for an OAuth access token. This request must be made from your **server** (backend), not from the user's browser.
+
+### Request
+
+<ParamField body="grant_type" type="string" required>
+  Must be `"authorization_code"`. This is the only supported grant type for initial token issuance.
+</ParamField>
+
+<ParamField body="code" type="string" required>
+  The authorization code received in the `code` query parameter of your `redirect_uri` callback. Codes are single-use and expire after 5 minutes.
+</ParamField>
+
+<ParamField body="client_id" type="string" required>
+  Your housing platform's registered OAuth client ID.
+</ParamField>
+
+<ParamField body="client_secret" type="string" required>
+  Your platform's OAuth client secret. This value is sensitive — keep it in environment variables and never expose it to the client side.
+</ParamField>
+
+<ParamField body="redirect_uri" type="string" required>
+  The exact `redirect_uri` you used when initiating the authorization request. Must match byte-for-byte.
+</ParamField>
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.roomie.app/api/oauth/token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "grant_type": "authorization_code",
+    "code": "AUTH_CODE_XYZ123abc",
+    "client_id": "roomie_client_abc123",
+    "client_secret": "sk_live_your_secret_here",
+    "redirect_uri": "https://yourplatform.ng/auth/callback"
+  }'
+```
+
+```typescript Node.js (server-side)
+const res = await fetch("https://api.roomie.app/api/oauth/token", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    grant_type: "authorization_code",
+    code: authCode,              // from your redirect_uri callback
+    client_id: process.env.ROOMIE_CLIENT_ID,
+    client_secret: process.env.ROOMIE_CLIENT_SECRET,
+    redirect_uri: "https://yourplatform.ng/auth/callback",
+  }),
+});
+
+const token = await res.json();
+// token.access_token is now ready to use
+```
+
+```python Python (server-side)
+import requests, os
+
+response = requests.post(
+    "https://api.roomie.app/api/oauth/token",
+    json={
+        "grant_type": "authorization_code",
+        "code": auth_code,
+        "client_id": os.environ["ROOMIE_CLIENT_ID"],
+        "client_secret": os.environ["ROOMIE_CLIENT_SECRET"],
+        "redirect_uri": "https://yourplatform.ng/auth/callback",
+    },
+)
+
+token_data = response.json()
+access_token = token_data["access_token"]
+```
+</CodeGroup>
+
+### Response `200 OK`
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLXV1aWQiLCJzY29wZSI6InByb2ZpbGU6cmVhZCB2ZXJpZmljYXRpb246cmVhZCIsImNsaWVudF9pZCI6InJvb21pZV9jbGllbnRfYWJjMTIzIiwiaWF0IjoxNzE5MDAwMDAwLCJleHAiOjE3MTkwODY0MDB9.signature",
+  "token_type": "Bearer",
+  "expires_in": 86400,
+  "scope": "profile:read verification:read network:read"
+}
+```
+
+<ResponseField name="access_token" type="string">
+  A JWT access token granting access to the approved scopes. Pass this as `Authorization: Bearer <token>` on calls to `GET /api/oauth/userinfo`.
+</ResponseField>
+
+<ResponseField name="token_type" type="string">
+  Always `"Bearer"`.
+</ResponseField>
+
+<ResponseField name="expires_in" type="integer">
+  Token validity in seconds. A value of `86400` means the token is valid for 24 hours from issuance.
+</ResponseField>
+
+<ResponseField name="scope" type="string">
+  Space-separated list of scopes actually granted. May differ from requested scopes if the user approved a subset.
+</ResponseField>
+
+## Handling Token Expiry
+
+Access tokens issued to housing platforms expire after 24 hours. When a token expires and you need to re-access user data, redirect the user through the authorization flow again to obtain a fresh code and token.
+
+```typescript
+async function getValidToken(userId: string): Promise<string> {
+  const stored = await db.getOAuthToken(userId);
+
+  if (stored && new Date(stored.expires_at) > new Date()) {
+    return stored.access_token;
+  }
+
+  // Token expired — redirect user through Roomie OAuth again
+  throw new TokenExpiredError("Re-authorization required");
+}
+```
+
+<Warning>
+  Store `access_token` values securely server-side only. Never include them in HTML, JavaScript bundles, or client-accessible storage. Treat them with the same care as API keys.
+</Warning>
+
+## Security Checklist
+
+Before deploying your token exchange handler to production, verify:
+
+- [ ] `client_secret` is loaded from an environment variable, not hardcoded
+- [ ] `state` parameter was verified before calling this endpoint
+- [ ] Token exchange happens on your server backend, not in the browser
+- [ ] Received `redirect_uri` in the callback matches the value you registered
+- [ ] Access tokens are stored encrypted in your database
+
+## Error Reference
+
+| Status | Error | Cause |
+|--------|-------|-------|
+| `400 Bad Request` | `invalid_grant` | Authorization code has expired, been used, or is invalid |
+| `400 Bad Request` | `invalid_client` | `client_id` / `client_secret` mismatch |
+| `400 Bad Request` | `invalid_request` | Missing required field (`grant_type`, `code`, etc.) |
+| `400 Bad Request` | `redirect_uri_mismatch` | `redirect_uri` does not match the registered value |

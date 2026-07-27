@@ -1,0 +1,150 @@
+---
+title: "Authenticate and Authorize Requests to the Roomie API"
+sidebarTitle: "Authentication"
+description: "Learn how to obtain a JWT access token from the Roomie API and pass it as a Bearer token in the Authorization header on every authenticated request."
+---
+
+The Roomie API uses JWT (JSON Web Token) Bearer authentication. Every request to a protected endpoint must include a valid token in the `Authorization` header. Tokens are short-lived and obtained by posting valid credentials to the login endpoint. This page walks through obtaining a token, using it, handling expiry, and revoking sessions.
+
+## POST /v1/auth/login
+
+Exchange a registered email and password for a JWT access token. This is the entry point for all programmatic API access.
+
+### Request
+
+<ParamField body="email" type="string" required>
+  The user's registered email address. For Nigerian students, this is typically their institutional `.edu.ng` address.
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  The user's account password.
+</ParamField>
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.roomie.app/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "adaeze@unilag.edu.ng",
+    "password": "S3cur3P@ssword"
+  }'
+```
+
+```typescript fetch
+const response = await fetch("https://api.roomie.app/v1/auth/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    email: "adaeze@unilag.edu.ng",
+    password: "S3cur3P@ssword",
+  }),
+});
+
+const data = await response.json();
+// data.access_token holds your JWT
+```
+</CodeGroup>
+
+### Response `200 OK`
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyLXV1aWQtMTIzIiwiZW1haWwiOiJhZGFlemVAdW5pbGFnLmVkdS5uZyIsImlhdCI6MTcxOTAwMDAwMCwiZXhwIjoxNzE5MDg2NDAwfQ.signature",
+  "token_type": "Bearer"
+}
+```
+
+<ResponseField name="access_token" type="string">
+  A signed JWT valid for a limited period. Include this value on every subsequent authenticated request.
+</ResponseField>
+
+<ResponseField name="token_type" type="string">
+  Always `"Bearer"`. Indicates how the token should be sent.
+</ResponseField>
+
+## Using the Token
+
+Once you hold an `access_token`, include it in the `Authorization` header of every request that requires authentication:
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+<CodeGroup>
+```bash cURL example
+curl https://api.roomie.app/v1/profiles/me \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+```typescript fetch example
+const profileRes = await fetch("https://api.roomie.app/v1/profiles/me", {
+  headers: {
+    Authorization: `Bearer ${access_token}`,
+  },
+});
+
+const profile = await profileRes.json();
+```
+</CodeGroup>
+
+<Warning>
+  Never expose your access token in client-side source code, version control, or public logs. Store tokens in secure, ephemeral memory (e.g., in-memory variables or HTTP-only cookies) and never in `localStorage`.
+</Warning>
+
+## Token Expiry
+
+JWT tokens issued by the Roomie API are time-limited. When a token expires, all authenticated requests return a `401 Unauthorized` error. Your integration should detect this and redirect the user through the login flow to obtain a fresh token.
+
+```json
+{
+  "statusCode": 401,
+  "message": "Unauthorized",
+  "error": "Unauthorized"
+}
+```
+
+<Note>
+  The Roomie API does not currently issue refresh tokens for the REST API. Re-authenticate via `POST /v1/auth/login` to obtain a new access token when yours expires. If you are building an OAuth SSO integration, see the [OAuth Token endpoint](/api/oauth-token) which does support refresh grants.
+</Note>
+
+## POST /v1/auth/logout
+
+Invalidate the current session on the server. Call this when a user explicitly signs out of your application to prevent stale tokens being reused.
+
+### Request
+
+This endpoint requires authentication. Pass the token you wish to invalidate as a Bearer token. No request body is needed.
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.roomie.app/v1/auth/logout \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+```typescript fetch
+await fetch("https://api.roomie.app/v1/auth/logout", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${access_token}`,
+  },
+});
+```
+</CodeGroup>
+
+### Response `200 OK`
+
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
+After a successful logout, the token is invalidated server-side. Any subsequent request using the same token will return `401 Unauthorized`.
+
+## Error Reference
+
+| Status | Cause | Resolution |
+|--------|-------|------------|
+| `400 Bad Request` | Missing `email` or `password` field | Ensure both fields are present in the request body |
+| `401 Unauthorized` | Invalid credentials or expired token | Verify credentials; re-authenticate if token has expired |
+| `429 Too Many Requests` | Too many login attempts from the same IP | Back off and retry after the `Retry-After` header interval |

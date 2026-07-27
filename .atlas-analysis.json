@@ -1,13 +1,11 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Roomie",
+  "projectType": "saas",
+  "projectName": "Roomie",
+  "projectDescription": "Roomie is a student-first SaaS platform for finding, matching, and managing roommates — covering compatibility discovery, secure messaging, shared billing, and vetted student housing in Nigeria.",
   "theme": "almond",
-  "colors": {
-    "primary": "#6C47FF",
-    "light": "#EDE9FF",
-    "dark": "#3A1FA8"
-  },
-  "favicon": "/favicon.svg",
+  "primaryColor": "#6C47FF",
+  "lightColor": "#EDE9FF",
+  "darkColor": "#3A1FA8",
   "navigation": {
     "tabs": [
       {
@@ -126,10 +124,39 @@
       }
     ]
   },
-  "navbar": {
-    "primary": {
-      "type": "github",
-      "href": "https://github.com/GIGS-Labzz/Roomie"
-    }
-  }
+  "keyFeatures": [
+    "Compatibility-based roommate discovery with lifestyle scoring",
+    "Social feed for roommate request posts, reactions, and comments",
+    "Consent-based Roommate Agreements with e-signature and payment gate",
+    "Shared expense ledger with automatic bill splitting via Paystack",
+    "Vetted student hostel catalog unlocked by confirmed roommate pairs",
+    "Student identity verification with verified badge",
+    "Secure real-time messaging with offline PWA caching",
+    "Roomie ID — OAuth SSO for housing provider integrations",
+    "Connection network mapping 1st/2nd-degree roommate relationships",
+    "Earnable trust badges (Verified Student, Good Payer, Roomie Partner)",
+    "Checkout Consent workflow for deposit release",
+    "Push notifications for connection requests and agreement updates"
+  ],
+  "publicApiSurface": [
+    "POST /v1/auth/login",
+    "POST /v1/auth/logout",
+    "GET /v1/profiles/:id",
+    "PATCH /v1/profiles/me",
+    "GET /v1/connections/:id",
+    "POST /v1/connections",
+    "POST /v1/agreements",
+    "GET /v1/housing",
+    "GET /v1/messages",
+    "POST /v1/messages",
+    "GET /v1/network/mutual/:userId",
+    "GET /v1/notifications",
+    "POST /v1/payments/webhook",
+    "POST /v1/splits",
+    "POST /v1/waitlist",
+    "GET /v1/posts",
+    "GET /api/oauth/authorize",
+    "POST /api/oauth/token",
+    "GET /api/oauth/userinfo"
+  ]
 }

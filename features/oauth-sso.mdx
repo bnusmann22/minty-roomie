@@ -1,0 +1,194 @@
+---
+title: "Connect with Roomie ID: OAuth SSO for Housing Platforms"
+sidebarTitle: "OAuth SSO"
+description: "Housing providers can integrate Roomie's OAuth SSO to let students sign in with their verified Roomie identity, roommate partner data, and housing credentials."
+---
+
+Roomie's OAuth 2.0 SSO integration lets students carry their verified identity — student status, roommate partner, budget preferences, and lifestyle data — directly into partner housing platforms without filling in a single extra form. For housing providers, it means instant access to trustworthy, pre-verified tenant pairs at the point of application.
+
+<Tabs>
+  <Tab title="For Students">
+
+    ## Signing In with Your Roomie ID
+
+    When you visit a partner housing platform — a student hostel site, a property agency, or a verified accommodation provider — you may see a **"Connect with Roomie ID"** button on their sign-in or application page. This is Roomie's SSO integration in action.
+
+    ### What Happens When You Click It
+
+    <Steps>
+      <Step title="Redirect to Roomie">
+        Clicking the button takes you away from the housing platform and to Roomie's secure sign-in page. The URL will begin with `roomie.app/oauth/authorize`. If you're already logged into Roomie on that browser, you'll skip straight to the consent screen.
+      </Step>
+      <Step title="Review the Consent Screen">
+        Roomie shows you exactly what the housing platform is requesting: the platform's name, logo, and the specific data scopes it wants to read. You can see clearly whether it's asking for your basic profile, your student verification status, your roommate partner details, or a combination.
+      </Step>
+      <Step title="Approve or Deny">
+        Tap **Allow** to grant access or **Deny** to cancel and return to the platform without sharing anything. Your choice is required — nothing is shared automatically.
+      </Step>
+      <Step title="Redirected Back">
+        Once you approve, Roomie redirects you back to the housing platform. You're now signed in with your Roomie identity, and the platform has received your verified data. You won't need to manually enter your university, budget range, or student status.
+      </Step>
+    </Steps>
+
+    ### What Data You're Sharing
+
+    The data shared depends entirely on the scopes the housing platform requested. You'll see these listed on the consent screen before you approve.
+
+    | Scope | What It Unlocks |
+    |---|---|
+    | `profile:read` | Your `@handle`, display name, email, age, gender, university, year of study, and budget preferences |
+    | `verification:read` | Whether your student ID has been verified and when verification was completed |
+    | `network:read` | Your confirmed roommate partner's Roomie ID and display name |
+
+    <Note>
+      A platform requesting `network:read` will see your current confirmed roommate partner — but only their `@handle` and display name. No private messages, financial data, or contact details are ever shared through OAuth scopes.
+    </Note>
+
+    ### Revoking Access
+
+    You can disconnect a housing platform at any time:
+
+    1. Go to **Settings** in your Roomie app.
+    2. Tap **Connected Apps**.
+    3. Find the platform you want to remove and tap **Revoke Access**.
+
+    Revoking access immediately invalidates all active tokens for that platform. They will not be able to retrieve your data again until you re-authorize.
+
+  </Tab>
+  <Tab title="For Housing Providers">
+
+    ## Integrating Roomie SSO into Your Platform
+
+    Roomie uses the **OAuth 2.0 Authorization Code flow** — the same standard used by Google, GitHub, and other identity providers. If you have existing OAuth integrations, this will feel familiar.
+
+    ### Step 1: Register Your Platform
+
+    Before you can initiate an OAuth flow, you need a `client_id` and `client_secret`. These are issued when you register your housing platform with Roomie.
+
+    Contact the Roomie partnerships team or register through the Developer Hub. Once approved, you'll receive:
+
+    | Credential | Description |
+    |---|---|
+    | `client_id` | Auto-generated UUID that identifies your platform |
+    | `client_secret` | A hashed secret key used to authenticate token exchange requests — store this securely and never expose it client-side |
+    | `redirect_uris` | The URI(s) Roomie is permitted to redirect users back to after authorization |
+    | `allowed_scopes` | The scopes your platform is permitted to request |
+
+    ### Step 2: Implement the Authorization Code Flow
+
+    <Steps>
+      <Step title="Redirect the User to Roomie">
+        When a user clicks your "Connect with Roomie ID" button, redirect them to the Roomie authorization endpoint:
+
+        ```http
+        GET /api/oauth/authorize?client_id=CLIENT_ID&redirect_uri=REDIRECT_URI&scope=profile:read+verification:read
+        ```
+
+        **Required parameters:**
+
+        | Parameter | Description |
+        |---|---|
+        | `client_id` | Your registered platform client ID |
+        | `redirect_uri` | Must exactly match one of your registered redirect URIs |
+        | `scope` | Space-separated list of requested scopes (URL-encoded as `+`) |
+
+        The user will be shown the Roomie login screen (if not already authenticated) and then a consent screen listing your platform name and requested scopes.
+      </Step>
+      <Step title="Receive the Authorization Code">
+        If the user approves, Roomie redirects them back to your `redirect_uri` with a short-lived authorization code:
+
+        ```
+        https://your-platform.com/auth/callback?code=AUTH_CODE_XYZ
+        ```
+
+        <Warning>
+          Authorization codes expire in **5 minutes** and are single-use. Exchange the code for an access token immediately after receiving it.
+        </Warning>
+      </Step>
+      <Step title="Exchange the Code for an Access Token">
+        Make a server-side `POST` request to the token endpoint. This request must include your `client_secret` and should never be made from client-side code.
+
+        ```http
+        POST /api/oauth/token
+        Content-Type: application/x-www-form-urlencoded
+
+        client_id=CLIENT_ID
+        &client_secret=CLIENT_SECRET
+        &code=AUTH_CODE_XYZ
+        &redirect_uri=REDIRECT_URI
+        ```
+
+        A successful response returns an access token:
+
+        ```json
+        {
+          "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          "token_type": "Bearer",
+          "expires_in": 3600,
+          "scope": "profile:read verification:read"
+        }
+        ```
+      </Step>
+      <Step title="Fetch Verified User Data">
+        Use the access token to call the userinfo endpoint and retrieve the student's verified profile data:
+
+        ```http
+        GET /api/oauth/userinfo
+        Authorization: Bearer ACCESS_TOKEN
+        ```
+
+        Example response:
+
+        ```json
+        {
+          "roomie_id": "@ada_unilag",
+          "display_name": "Ada Okafor",
+          "email": "ada@unilag.edu.ng",
+          "identity_status": {
+            "student_verified": true,
+            "verification_status": "VERIFIED",
+            "verified_at": "2026-06-15T12:00:00Z"
+          },
+          "demographics": {
+            "age": 21,
+            "gender": "female",
+            "university": "UNILAG",
+            "faculty": "Science",
+            "year_of_study": 3
+          },
+          "preferences": {
+            "min_budget": 80000,
+            "max_budget": 150000,
+            "lifestyle_tags": ["quiet", "no_smoking"]
+          },
+          "current_roommate_partner": {
+            "id": "partner-uuid-123",
+            "roomie_id": "@kemi_smith",
+            "display_name": "Kemi Smith"
+          }
+        }
+        ```
+
+        Use `roomie_id` as the stable primary identifier for the user in your system. The `current_roommate_partner` object gives you both roommates' details in a single call — ideal for creating joint renter profiles.
+      </Step>
+    </Steps>
+
+    ### Available Scopes
+
+    | Scope | Data Returned | Use Case |
+    |---|---|---|
+    | `profile:read` | `roomie_id`, `display_name`, `email`, `demographics`, `preferences` | General identity and budget verification |
+    | `verification:read` | `identity_status` (student verification status and timestamp) | Confirming the applicant is a verified enrolled student |
+    | `network:read` | `current_roommate_partner` (id, `roomie_id`, display name) | Establishing a joint renter profile for two applicants |
+
+    You may request multiple scopes by separating them with a space (URL-encode as `+` in the query string).
+
+    ### Security Notes
+
+    - Always exchange authorization codes **server-side** — never expose your `client_secret` in browser or mobile app code.
+    - Authorization codes are valid for **5 minutes** and can only be used once.
+    - Store access tokens securely. Treat them with the same care as passwords.
+    - If you need to re-verify a user after a token expires, restart the authorization flow from Step 1.
+
+  </Tab>
+</Tabs>

@@ -1,0 +1,261 @@
+---
+title: "GET /api/oauth/userinfo — Fetch Verified Student Profile"
+sidebarTitle: "OAuth Userinfo"
+description: "Retrieve a verified Roomie student's renter passport including identity, demographics, budget preferences, and active roommate partner details via OAuth."
+---
+
+The userinfo endpoint is the final step in the Roomie SSO flow. After exchanging an authorization code for an access token, call this endpoint to retrieve the verified student profile — the **Unified Renter Passport**. This document contains everything a housing platform needs to onboard a student renter: verified identity status, academic details, budget preferences, lifestyle tags, and the co-roommate's identity for joint tenancy applications. The Roomie platform populates this data from student-submitted profiles that have been reviewed by Roomie admins, so you can trust its accuracy.
+
+## GET /api/oauth/userinfo
+
+Returns the verified profile of the student who authorized your OAuth application. The data returned is scoped to the permissions the user approved — requesting fields outside the granted scopes returns `403 Forbidden`.
+
+### Authentication
+
+Requires a valid OAuth Bearer token obtained from `POST /api/oauth/token`. This token is **different** from the regular Roomie REST API token — it is issued specifically for your housing platform's OAuth client.
+
+```
+Authorization: Bearer <oauth_access_token>
+```
+
+<CodeGroup>
+```bash cURL
+curl https://api.roomie.app/api/oauth/userinfo \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+```typescript fetch (server-side)
+const res = await fetch("https://api.roomie.app/api/oauth/userinfo", {
+  headers: {
+    Authorization: `Bearer ${oauthAccessToken}`,
+  },
+});
+
+const renterPassport = await res.json();
+```
+
+```python Python (server-side)
+import requests
+
+response = requests.get(
+    "https://api.roomie.app/api/oauth/userinfo",
+    headers={"Authorization": f"Bearer {oauth_access_token}"},
+)
+
+renter_passport = response.json()
+```
+</CodeGroup>
+
+### Response `200 OK`
+
+```json
+{
+  "roomie_id": "@adaeze_okafor",
+  "display_name": "Adaeze Okafor",
+  "email": "adaeze@unilag.edu.ng",
+  "identity_status": {
+    "student_verified": true,
+    "verification_status": "VERIFIED",
+    "verified_at": "2025-09-15T12:00:00Z"
+  },
+  "demographics": {
+    "age": 21,
+    "gender": "female",
+    "university": "UNILAG",
+    "faculty": "Science",
+    "year_of_study": 3
+  },
+  "preferences": {
+    "min_budget": 80000,
+    "max_budget": 150000,
+    "lifestyle_tags": ["quiet", "no_smoking", "early_riser"]
+  },
+  "current_roommate_partner": {
+    "id": "8c4b1f22-de91-4a73-bc01-abcdef012345",
+    "roomie_id": "@emeka_nwosu",
+    "display_name": "Emeka Nwosu"
+  }
+}
+```
+
+## Response Schema
+
+<ResponseField name="roomie_id" type="string">
+  The student's unique `@username` on the Roomie platform. This serves as the primary identifier in joint renter profiles and housing platform redirects.
+</ResponseField>
+
+<ResponseField name="display_name" type="string">
+  The student's full display name.
+</ResponseField>
+
+<ResponseField name="email" type="string">
+  The student's registered email address. Typically an institutional `.edu.ng` address for verified students.
+</ResponseField>
+
+<ResponseField name="identity_status" type="object">
+  <Expandable title="identity_status fields">
+    <ResponseField name="student_verified" type="boolean">
+      `true` if a Roomie admin has reviewed and approved the student's institutional ID card. This is the primary trust signal for housing platforms.
+    </ResponseField>
+
+    <ResponseField name="verification_status" type="string">
+      One of `"VERIFIED"`, `"PENDING"`, or `"REJECTED"`. Only `"VERIFIED"` indicates a fully approved student identity.
+    </ResponseField>
+
+    <ResponseField name="verified_at" type="string">
+      ISO 8601 timestamp of when the verification was approved. Present only when `verification_status` is `"VERIFIED"`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="demographics" type="object">
+  <Expandable title="demographics fields">
+    <ResponseField name="age" type="integer">
+      The student's age in years, derived from their date of birth on file.
+    </ResponseField>
+
+    <ResponseField name="gender" type="string">
+      Student-reported gender. Common values: `"male"`, `"female"`, `"non_binary"`, `"prefer_not_to_say"`.
+    </ResponseField>
+
+    <ResponseField name="university" type="string">
+      The name of the student's institution (e.g., `"UNILAG"`, `"UI"`, `"ABU"`, `"UNIBEN"`).
+    </ResponseField>
+
+    <ResponseField name="faculty" type="string">
+      The student's faculty or college (e.g., `"Science"`, `"Law"`, `"Engineering"`).
+    </ResponseField>
+
+    <ResponseField name="year_of_study" type="integer">
+      The student's current year of enrollment. Values typically range from `1` to `6` depending on programme length.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="preferences" type="object">
+  <Expandable title="preferences fields">
+    <ResponseField name="min_budget" type="integer">
+      The student's minimum monthly rent budget in Nigerian Naira (NGN). Use this to match listings to their affordability range.
+    </ResponseField>
+
+    <ResponseField name="max_budget" type="integer">
+      The student's maximum monthly rent budget in Nigerian Naira (NGN).
+    </ResponseField>
+
+    <ResponseField name="lifestyle_tags" type="array of strings">
+      Self-reported living preferences that a housing platform can use to suggest suitable properties or co-tenants (e.g., `"quiet"`, `"no_smoking"`, `"pet_friendly"`, `"early_riser"`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="current_roommate_partner" type="object | null">
+  <Expandable title="current_roommate_partner fields">
+    Details of this student's confirmed co-roommate. Present only if the student has a `CONFIRMED` roommate agreement. `null` if they are currently searching solo.
+
+    <ResponseField name="id" type="string">
+      UUID of the co-roommate's profile.
+    </ResponseField>
+
+    <ResponseField name="roomie_id" type="string">
+      The co-roommate's `@username` Roomie ID.
+    </ResponseField>
+
+    <ResponseField name="display_name" type="string">
+      The co-roommate's full display name.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Using the Renter Passport
+
+The userinfo response is designed to be the single source of truth for joint renter onboarding. Here is a recommended integration pattern:
+
+```typescript
+interface RoomieUserInfo {
+  roomie_id: string;
+  display_name: string;
+  email: string;
+  identity_status: {
+    student_verified: boolean;
+    verification_status: "VERIFIED" | "PENDING" | "REJECTED";
+    verified_at?: string;
+  };
+  demographics: {
+    age: number;
+    gender: string;
+    university: string;
+    faculty: string;
+    year_of_study: number;
+  };
+  preferences: {
+    min_budget: number;
+    max_budget: number;
+    lifestyle_tags: string[];
+  };
+  current_roommate_partner: {
+    id: string;
+    roomie_id: string;
+    display_name: string;
+  } | null;
+}
+
+async function onboardRoomieStudent(oauthToken: string) {
+  const res = await fetch("https://api.roomie.app/api/oauth/userinfo", {
+    headers: { Authorization: `Bearer ${oauthToken}` },
+  });
+
+  const passport: RoomieUserInfo = await res.json();
+
+  // Gate on verified student status
+  if (!passport.identity_status.student_verified) {
+    throw new Error("Student identity not yet verified on Roomie");
+  }
+
+  // Create or update local user record
+  await db.upsertUser({
+    roomie_id: passport.roomie_id,
+    email: passport.email,
+    display_name: passport.display_name,
+    university: passport.demographics.university,
+    budget_range: {
+      min: passport.preferences.min_budget,
+      max: passport.preferences.max_budget,
+    },
+  });
+
+  // Auto-link confirmed roommate partner
+  if (passport.current_roommate_partner) {
+    await db.linkRoommatePartner(
+      passport.roomie_id,
+      passport.current_roommate_partner.roomie_id
+    );
+  }
+
+  return passport;
+}
+```
+
+<Note>
+  All budget values in the preferences object are denominated in **Nigerian Naira (NGN)**, not kobo. This is intentional — userinfo is a read-only profile document, not a payment instruction. No conversion is needed when displaying these values to users.
+</Note>
+
+<Warning>
+  The `email` field is returned only if the user granted `profile:read` scope and their email is confirmed. Always check `identity_status.student_verified` before relying on this data for tenancy applications. An unverified profile means a Roomie admin has not yet reviewed the student's institutional ID.
+</Warning>
+
+## Scope-Gated Fields
+
+| Field | Required Scope |
+|-------|---------------|
+| `roomie_id`, `display_name` | `profile:read` |
+| `email`, `demographics`, `preferences` | `profile:read` |
+| `identity_status` | `verification:read` |
+| `current_roommate_partner` | `network:read` |
+
+## Error Reference
+
+| Status | Cause |
+|--------|-------|
+| `401 Unauthorized` | Missing, expired, or invalid OAuth access token |
+| `403 Forbidden` | Token was issued for a different client, or requested scope not granted |
+| `404 Not Found` | User associated with this token no longer exists |

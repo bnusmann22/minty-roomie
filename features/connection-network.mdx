@@ -1,0 +1,91 @@
+---
+title: "Your Roomie Connection Network and Degree Relationships"
+sidebarTitle: "Network"
+description: "Understand how Roomie maps your 1st and 2nd-degree roommate connections, shows mutual connections on profiles, and helps you find trusted matches."
+---
+
+Your Roomie connection network is a trust web built from real co-living relationships. Every time you and a roommate sign and pay a Roommate Agreement, that relationship becomes a verified node in your network — and those nodes reach outward to surface mutual connections that help you and every future match feel safer about each other.
+
+## How the network is structured
+
+Roomie models your connections the same way professional networks map relationships — by degrees. The closer the degree, the more direct and verifiable the relationship.
+
+### 1st-degree connections
+
+A 1st-degree connection is someone you have an **active Roommate Agreement** with. This means you have both co-signed an agreement and the Paystack payment has cleared. These are your confirmed, verified roommates — past or present.
+
+Your 1st-degree connections are the strongest trust signal you can carry on the platform. They represent real commitments, not just chats or matched profiles.
+
+### 2nd-degree connections
+
+A 2nd-degree connection is someone who has an active agreement with one of your 1st-degree connections — your **roommate's roommate**. You haven't lived with them directly, but you share a trusted person in common.
+
+When you browse Discover, Roomie checks your 2nd-degree connections and surfaces them as mutual connections on profile cards, giving you an immediate signal of shared social proximity.
+
+---
+
+## Mutual connections on Discover
+
+When you view a student's profile card in the Discover directory, Roomie checks how many of your 1st-degree connections are also connected to them. If there's an overlap, you'll see a prompt like:
+
+> *"Matched with 2 mutual connections"*
+
+This is one of the most powerful trust cues on the platform. It means that the student you're considering has already co-lived with — or is connected to — people in your own network. You can reach out knowing your mutual connections can vouch for them indirectly.
+
+<Note>
+Mutual connections are computed in real time using the `GET /api/network/mutual/:userId` endpoint. You don't need to do anything to see them — they appear automatically on profile cards as your network grows.
+</Note>
+
+---
+
+## Your network size
+
+Your profile displays your total network size — the combined count of your 1st and 2nd-degree connections. A larger number signals that you have an established co-living history and a broad circle of trusted student contacts.
+
+Other students looking for roommates in Discover factor in network size when evaluating profiles. A student with five 1st-degree connections and a visible network has a demonstrably stronger record than a brand-new profile with no history.
+
+---
+
+## How a bigger network works in your favour
+
+The relationship between network size and match success is straightforward:
+
+<Steps>
+  <Step title="You complete a Roommate Agreement">
+    You and your new roommate both become 1st-degree connections of each other, and your network sizes increase.
+  </Step>
+  <Step title="Mutual connections appear on profiles">
+    When either of you browses Discover in the future, students connected to your roommate show up with mutual connection indicators on their cards.
+  </Step>
+  <Step title="Trust signals increase response rates">
+    Students are more likely to accept connection requests and reply to messages from profiles that show mutual connections — it removes the uncertainty of engaging with a total stranger.
+  </Step>
+  <Step title="Your network compounds over time">
+    Each new agreement expands your 2nd-degree reach. Two agreements can surface dozens of 2nd-degree connections depending on how well-connected your roommates are.
+  </Step>
+</Steps>
+
+---
+
+## How to grow your network
+
+<CardGroup cols={2}>
+  <Card title="Complete Agreements" icon="file-signature">
+    Every paid Roommate Agreement adds a direct 1st-degree connection. The most reliable way to grow your network is to follow through on matches and formalise the partnership.
+  </Card>
+  <Card title="Refer Friends to Roomie" icon="user-plus">
+    When your friends join Roomie and form their own agreements, you extend your 2nd-degree reach without any extra effort — especially useful if you refer coursemates who already know each other.
+  </Card>
+  <Card title="Stay Active in Discover" icon="compass">
+    Consistent activity in Discover means more profile views, more connection requests, and more opportunities to build relationships that can eventually become agreements.
+  </Card>
+  <Card title="Engage on the Social Feed" icon="newspaper">
+    Posting on the feed puts your profile in front of students who may not have found you through directory search alone, broadening your potential connection pool.
+  </Card>
+</CardGroup>
+
+---
+
+## A note on network privacy
+
+Your list of individual 1st-degree connections is not publicly displayed by name. Only the **count** of mutual connections between you and another specific user is shown — and only to that user when they view your profile. This keeps your full network private while still surfacing the trust signals that matter most during matching.

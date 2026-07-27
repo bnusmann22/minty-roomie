@@ -1,0 +1,167 @@
+---
+title: "Retrieve In-App Notifications on the Roomie API"
+sidebarTitle: "Notifications"
+description: "Fetch the authenticated user's notification feed for connection requests, agreement updates, bill split alerts, and badge awards within your integration."
+---
+
+Notifications keep students informed of important events across the Roomie platform — incoming connection requests, agreement status changes, bill split creation and payment confirmations, badge awards, and system announcements. Notifications are generated server-side in response to platform events and are delivered both as in-app alerts and Web Push messages. This endpoint retrieves the notification feed for the authenticated user.
+
+## GET /v1/notifications
+
+Returns a paginated list of notifications for the authenticated user, ordered newest-first.
+
+### Authentication
+
+Requires a valid Bearer token.
+
+### Query Parameters
+
+<ParamField query="page" type="integer">
+  Page number for pagination. Defaults to `1`.
+</ParamField>
+
+<ParamField query="limit" type="integer">
+  Number of notifications per page. Defaults to `20`, maximum `50`.
+</ParamField>
+
+<ParamField query="unread_only" type="boolean">
+  If `true`, returns only notifications the user has not yet marked as read. Defaults to `false`.
+</ParamField>
+
+<CodeGroup>
+```bash cURL
+curl "https://api.roomie.app/v1/notifications" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+```bash Unread only (cURL)
+curl "https://api.roomie.app/v1/notifications?unread_only=true" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+```typescript fetch
+const res = await fetch("https://api.roomie.app/v1/notifications?page=1&limit=20", {
+  headers: { Authorization: `Bearer ${access_token}` },
+});
+
+const notifications = await res.json();
+```
+</CodeGroup>
+
+### Response `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "id": "notif-uuid-004",
+      "type": "BADGE_AWARDED",
+      "title": "You earned a new badge!",
+      "body": "Congratulations! You've been awarded the Roomie Partner badge.",
+      "read": false,
+      "metadata": {
+        "badge_code": "ROOMIE_PARTNER",
+        "badge_name": "Roomie Partner"
+      },
+      "created_at": "2025-11-14T15:30:00Z"
+    },
+    {
+      "id": "notif-uuid-003",
+      "type": "AGREEMENT_CONFIRMED",
+      "title": "Roommate agreement confirmed",
+      "body": "Your agreement with @emeka_nwosu is now confirmed. Housing is now unlocked!",
+      "read": false,
+      "metadata": {
+        "agreement_id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+        "connection_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      },
+      "created_at": "2025-11-14T15:25:00Z"
+    },
+    {
+      "id": "notif-uuid-002",
+      "type": "BILL_SPLIT_CREATED",
+      "title": "New bill split: November Rent",
+      "body": "@adaeze_okafor created a split for ₦400,000. Your share is ₦200,000.",
+      "read": true,
+      "metadata": {
+        "split_id": "bb12cc34-dd56-7890-eeff-001122334455",
+        "amount_due": 20000000,
+        "due_date": "2025-11-30"
+      },
+      "created_at": "2025-11-14T14:01:00Z"
+    },
+    {
+      "id": "notif-uuid-001",
+      "type": "CONNECTION_REQUEST",
+      "title": "New connection request",
+      "body": "@adaeze_okafor wants to connect with you as a potential roommate.",
+      "read": true,
+      "metadata": {
+        "connection_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+        "sender_id": "3f7e2d1a-bc44-4e91-b9f3-123456789abc",
+        "sender_roomie_id": "@adaeze_okafor"
+      },
+      "created_at": "2025-11-14T10:00:00Z"
+    }
+  ],
+  "total": 4,
+  "unread_count": 2,
+  "page": 1,
+  "limit": 20
+}
+```
+
+<ResponseField name="data" type="array of objects">
+  Array of notification objects, newest-first.
+</ResponseField>
+
+<ResponseField name="data[].id" type="string">
+  UUID of the notification.
+</ResponseField>
+
+<ResponseField name="data[].type" type="string">
+  The event category that triggered this notification. Common types:
+
+  | Type | Trigger |
+  |------|---------|
+  | `CONNECTION_REQUEST` | Another user sent you a connection request |
+  | `CONNECTION_ACCEPTED` | Your connection request was accepted |
+  | `AGREEMENT_CREATED` | A roommate agreement was proposed for your connection |
+  | `AGREEMENT_CONFIRMED` | Agreement payment confirmed; housing unlocked |
+  | `BILL_SPLIT_CREATED` | A co-roommate created a new bill split |
+  | `BILL_SPLIT_PAID` | A split item in your connection has been paid |
+  | `BADGE_AWARDED` | You earned a new Roomie badge |
+  | `CHECKOUT_REQUESTED` | Your co-roommate initiated a checkout request |
+  | `SYSTEM` | Platform announcement or administrative message |
+</ResponseField>
+
+<ResponseField name="data[].title" type="string">
+  Short headline for the notification, suitable for push notification titles.
+</ResponseField>
+
+<ResponseField name="data[].body" type="string">
+  Full descriptive message body.
+</ResponseField>
+
+<ResponseField name="data[].read" type="boolean">
+  `true` if the user has seen or acknowledged this notification.
+</ResponseField>
+
+<ResponseField name="data[].metadata" type="object">
+  Type-specific contextual data for deep-linking or action rendering. Contents vary by `type` (e.g., `connection_id` for connection events, `split_id` for bill events).
+</ResponseField>
+
+<ResponseField name="unread_count" type="integer">
+  Total number of unread notifications for the authenticated user. Use this to drive notification badges in your UI.
+</ResponseField>
+
+<Note>
+  Web Push delivery is handled independently by the Roomie PWA service worker. This REST endpoint is for fetching the persistent notification log. Implement polling or subscribe to real-time updates via WebSocket to keep the UI in sync.
+</Note>
+
+## Error Reference
+
+| Status | Cause |
+|--------|-------|
+| `401 Unauthorized` | Missing or invalid Bearer token |
+| `429 Too Many Requests` | Notification polling too frequent; implement a minimum 10-second polling interval |

@@ -1,0 +1,135 @@
+---
+title: "Roomie REST API: Overview and Getting Started Guide"
+sidebarTitle: "Overview"
+description: "The Roomie API gives developers programmatic access to profiles, connections, agreements, messaging, and housing data for the Roomie platform."
+---
+
+The Roomie REST API is the backbone of the Roomie student co-living ecosystem. It exposes all core platform functionality — from matching and messaging to agreements, expense splitting, and vetted housing — as versioned HTTP endpoints. Whether you are building a housing integration, a third-party dashboard, or extending the Roomie experience, this reference is your starting point.
+
+## Base URL
+
+All REST endpoints are served under the following base URL:
+
+```
+https://api.roomie.app/v1
+```
+
+All OAuth endpoints are served under a separate base:
+
+```
+https://api.roomie.app/api/oauth
+```
+
+## Versioning
+
+The current stable version of the API is **v1**. Every REST endpoint path begins with `/v1/`. Breaking changes will be introduced under a new version prefix (e.g., `/v2/`) and the previous version will continue to be supported with a deprecation notice.
+
+## Request Format
+
+All request bodies must be sent as JSON. Set the `Content-Type` header on every mutating request:
+
+```
+Content-Type: application/json
+```
+
+CORS is enabled with credentials across all endpoints, so browser-based clients can authenticate via cookies or `Authorization` headers.
+
+## Authentication
+
+Most endpoints require a valid JWT Bearer token obtained from `POST /v1/auth/login`. Pass the token in every request as:
+
+```
+Authorization: Bearer <your_access_token>
+```
+
+See the [Authentication guide](/api/authentication) for full details on obtaining and refreshing tokens.
+
+## Error Format
+
+All API errors follow a consistent JSON envelope:
+
+```json
+{
+  "statusCode": 401,
+  "message": "Unauthorized",
+  "error": "Unauthorized"
+}
+```
+
+### Common HTTP Status Codes
+
+| Code | Meaning |
+|------|---------|
+| `200 OK` | Request succeeded |
+| `201 Created` | Resource created successfully |
+| `400 Bad Request` | Invalid or missing request parameters |
+| `401 Unauthorized` | Missing or invalid access token |
+| `403 Forbidden` | Authenticated but lacks permission |
+| `404 Not Found` | Resource does not exist |
+| `429 Too Many Requests` | Rate limit exceeded |
+
+## Rate Limits
+
+The Roomie API enforces per-IP and per-token rate limits to ensure fair usage and platform stability. When a limit is exceeded, the API returns `429 Too Many Requests`. Implement exponential back-off in your client before retrying. Specific rate limit headers (`X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`) are included in every response.
+
+<Note>
+  If you are building a high-volume integration such as a housing platform or analytics dashboard, contact the Roomie team to discuss elevated rate limit tiers.
+</Note>
+
+## Your First API Call
+
+The simplest authenticated call you can make is fetching your own profile. First, exchange your credentials for a token, then use it immediately:
+
+<CodeGroup>
+```bash Login and fetch your profile
+# Step 1 — Get a token
+TOKEN=$(curl -s -X POST https://api.roomie.app/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@unilag.edu.ng","password":"your_password"}' \
+  | jq -r '.access_token')
+
+# Step 2 — Use it
+curl https://api.roomie.app/v1/profiles/me \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+```typescript Login and fetch your profile
+const loginRes = await fetch("https://api.roomie.app/v1/auth/login", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    email: "you@unilag.edu.ng",
+    password: "your_password",
+  }),
+});
+
+const { access_token } = await loginRes.json();
+
+const profileRes = await fetch("https://api.roomie.app/v1/profiles/me", {
+  headers: { Authorization: `Bearer ${access_token}` },
+});
+
+const profile = await profileRes.json();
+console.log(profile);
+```
+</CodeGroup>
+
+A successful response will return your full profile object including your Roomie ID, verification status, preferences, and badge inventory.
+
+## API Sections
+
+| Section | Description |
+|---------|-------------|
+| [Authentication](/api/authentication) | Login, logout, and token management |
+| [Profiles](/api/profiles) | Read and update student profiles |
+| [Connections](/api/connections) | Send and manage roommate connection requests |
+| [Agreements](/api/agreements) | Create formal roommate agreements |
+| [Splits](/api/splits) | Split bills and set up recurring expense shares |
+| [Housing](/api/housing) | Browse vetted hostel listings |
+| [Messages](/api/messages) | Send and retrieve in-app messages |
+| [Network](/api/network) | Explore mutual connection networks |
+| [Notifications](/api/notifications) | Retrieve in-app notifications |
+| [Payments](/api/payments) | Paystack webhook integration |
+| [OAuth — Authorize](/api/oauth-authorize) | Initiate SSO authorization flow |
+| [OAuth — Token](/api/oauth-token) | Exchange auth code for access token |
+| [OAuth — Userinfo](/api/oauth-userinfo) | Fetch verified user profile via SSO |

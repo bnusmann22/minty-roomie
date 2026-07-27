@@ -1,0 +1,100 @@
+---
+title: "Checkout Consent: Release Deposits When Moving Out"
+sidebarTitle: "Checkout Consent"
+description: "Learn how to initiate and complete the Checkout Consent process so both roommates agree before caution deposits are automatically refunded."
+---
+
+When it is time to move out, Roomie requires both you and your roommate to digitally sign off before any caution deposit is released. This joint process — called **Checkout Consent** — prevents either party from making unilateral deposit claims, confirms that all shared bills are settled, and triggers an automatic split refund to each roommate's account in the exact ratio originally agreed. No chasing landlords. No disputed deductions. No transfers to the wrong person.
+
+## What Checkout Consent Is
+
+Checkout Consent is a structured, two-sided digital sign-off built into Roomie's expense and housing workflow. It works as a digital checklist that both you and your roommate complete before the platform notifies your housing provider and releases any held caution deposit.
+
+The checklist covers three core verifications:
+
+- **Bills settled** — all shared utility, rent, and platform bills are fully paid
+- **Keys returned** — physical keys or access fobs have been handed back to the landlord
+- **No damages** — the room or apartment has no unreported damage claims
+
+Both parties must confirm these items. If your roommate spots an issue — an outstanding bill or a damage claim you missed — they can reject the request and give you a reason so you can resolve it first.
+
+## Why It Exists
+
+Without a joint sign-off, caution deposits in shared rentals become a source of serious friction. One roommate may move out early, leaving the other exposed to full rent or deposit forfeit. Roomie's Checkout Consent workflow closes this gap: the deposit is locked until both parties agree, protecting you whether you are the one leaving or the one staying behind.
+
+## Initiating a Checkout Request
+
+If you are ready to move out, follow these steps to start the process.
+
+<Steps>
+  <Step title="Open Splits or your Housing dashboard">
+    Navigate to the **Splits** section or your active housing dashboard from the main menu. Locate the shared lease or caution deposit entry linked to your confirmed Roommate Agreement.
+  </Step>
+  <Step title="Tap 'Check out'">
+    Tap the **Check out** button on the relevant housing or deposit entry. This opens the Checkout Consent form.
+  </Step>
+  <Step title="Enter your move-out date">
+    Select the date you plan to vacate the property. Choose the actual date you intend to hand over the keys — this date is shared with your roommate and your housing provider.
+  </Step>
+  <Step title="Complete the checklist">
+    Tick each item on the checklist to confirm:
+    - **Bills settled** — all shared bills linked to your agreement are paid
+    - **Keys returned** — you have returned or will return keys on the move-out date
+    - **No damages** — you confirm there are no unreported room damages
+
+    If damages exist, use the notes field to document them before submitting.
+  </Step>
+  <Step title="Submit the request">
+    Tap **Submit**. Your roommate immediately receives a push notification and sees an active checkout request appear on their dashboard.
+  </Step>
+</Steps>
+
+## What Your Roommate Sees
+
+Once you submit, your roommate receives a notification and reviews the request from their side.
+
+<Steps>
+  <Step title="Open the checkout request">
+    Your roommate taps the notification or opens the Checkout Consent section in their dashboard to view the full request, including your stated move-out date and checklist submissions.
+  </Step>
+  <Step title="Review outstanding bills">
+    Roomie surfaces any outstanding bill balances linked to your shared agreement directly on the review screen. Your roommate can cross-check that everything is cleared before responding.
+  </Step>
+  <Step title="Approve or reject">
+    Your roommate taps **Approve** if everything checks out, or taps **Reject** and enters a reason — for example, a specific unpaid bill or a damage they want documented.
+  </Step>
+</Steps>
+
+## What Happens on Approval
+
+When your roommate approves the request:
+
+- Roomie marks the checkout as **Approved**
+- The caution deposit is automatically split and refunded to each roommate's registered bank account in **the exact split ratio** already set in your agreement (for example, 50/50 or a custom ratio you both agreed on)
+- A **webhook fires to your landlord or housing agency's API**, notifying them that checkout consent is complete and the deposit release is verified
+- Both of you receive a confirmation notification and an updated transaction record in your Splits history
+
+You do not need to contact your landlord separately to trigger the refund — Roomie handles the notification automatically.
+
+## What Happens on Rejection
+
+If your roommate rejects the request:
+
+- You receive a push notification with the **rejection reason** your roommate provided
+- The checkout request closes, and the deposit remains locked
+- You can resolve the flagged issue — settle the outstanding bill, arrange key return, or address the damage claim — and then submit a new checkout request when ready
+
+Rejected requests do not count against you. There is no limit on how many times you can resubmit after resolving the issue.
+
+## Timelines and Dispute Resolution
+
+| Scenario | What to do |
+|---|---|
+| Roommate is unresponsive | Send a follow-up message in your chat thread. The checkout request stays active until they respond. |
+| Disputed bill balance | Resolve the split in the Splits section first, then resubmit the checkout request. |
+| Damage disagreement | Document the state of the property with photos and discuss in chat before retrying. |
+| Deposit not received after approval | Contact Roomie support with your `agreement_id` and the approval timestamp. |
+
+<Note>
+  The deposit refund timeline depends on your bank and payment processor. Roomie triggers the split automatically on approval, but settlement times may vary between 24–72 hours depending on your bank.
+</Note>

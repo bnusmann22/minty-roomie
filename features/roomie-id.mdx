@@ -1,0 +1,77 @@
+---
+title: "Your Roomie ID: A Portable Student Housing Identity"
+sidebarTitle: "Roomie ID"
+description: "Your Roomie ID is your portable student identity credential — a verified handle and shared connection ID used to log in to partner housing platforms."
+---
+
+Your Roomie ID is your permanent identity on the platform — a verified `@handle` that travels with you across every part of Roomie and, through the OAuth SSO integration, into partner housing platforms too. Think of it as your student housing passport number: it proves who you are, confirms your roommate partnership, and unlocks joint housing applications without you ever having to fill in another form.
+
+## What Is a Roomie ID?
+
+A Roomie ID has two layers:
+
+- **Your personal handle** — the `@username` you choose during account setup (e.g. `@ada_unilag`). This is your individual identity on the platform. It appears on your profile card, in the Discover directory, and as a badge inside your private chat threads.
+- **Your joint connection ID** — a unique identifier automatically created when you and a roommate confirm a Roommate Agreement. This ID represents the *pair*, not either person alone, and is what gets shared with housing providers when you browse the vetted hostel catalog.
+
+<Note>
+  Your personal `@handle` is created the moment you set up your account. The joint connection ID is only generated — and finalized — once a Roommate Agreement has been confirmed and the partnership payment is complete.
+</Note>
+
+## Where Your Roomie ID Appears
+
+| Location | What You See |
+|---|---|
+| **Your profile page** | Your `@handle` displayed under your name |
+| **Discover directory** | Handle visible on your profile card to potential roommates |
+| **Private chat thread** | Roomie Partner badge (visible only to you and your confirmed roommate) |
+| **Housing catalog** | Joint connection ID passed automatically to housing providers |
+| **SSO sign-in** | `@handle` shown on the Roomie consent screen when authenticating with partner platforms |
+
+## How to Find Your Roomie ID
+
+Your personal `@handle` is always visible at the top of your **Profile** page — tap the avatar icon in the bottom navigation bar (mobile) or your name in the left sidebar (desktop) to get there.
+
+Your joint connection ID is scoped to a specific roommate pair. To view it, navigate to the private chat thread with your confirmed roommate and look under the chat header — it will be displayed alongside your Roomie Partner badge once the agreement is active.
+
+## The Joint Roomie ID: Built for Two
+
+When both roommates sign a Roommate Agreement and the partnership is confirmed, Roomie generates a single joint ID that belongs to the pair. This ID is the backbone of the joint housing experience:
+
+- It is passed as a query parameter (`roomie_id`) when you click through to a housing provider in the catalog, establishing a joint renter profile automatically.
+- It links both roommates' verified identities together so that landlords and hostels can evaluate both people as a unit — not just one applicant.
+- It is scoped *strictly* to this agreement. If you later form a new agreement with a different roommate, a new joint ID is created.
+
+Housing access is always scoped to a specific confirmed agreement. On **mobile**, housing is accessible via your roommate's private chat header. On **desktop**, you'll be prompted to select which confirmed roommate connection to use before browsing.
+
+## How Housing Providers Use Your Roomie ID
+
+Partner housing platforms — student hostels and agencies that have integrated with Roomie — can display a **"Connect with Roomie ID"** button on their site. When you click it, you are redirected to Roomie's secure sign-in screen, where you approve what data is shared. The platform then receives your verified profile using your Roomie ID as the primary identifier.
+
+This means you skip redundant application forms. Your university, budget range, lifestyle preferences, and verified student status are delivered automatically through the [OAuth SSO flow](/features/oauth-sso).
+
+## Customizing Your Roomie Partner Badge
+
+Once your Roommate Agreement is confirmed, a **Roomie Partner badge** appears inside your shared private chat thread. Only you and your confirmed roommate can see this badge — it's a visual marker of your active connection.
+
+You can personalize the badge directly from the chat interface:
+
+1. Open the private chat with your confirmed roommate.
+2. Tap the badge icon in the chat header.
+3. Choose a **color**, **variant**, and **theme** from the customization panel.
+4. Changes are reflected instantly for both of you.
+
+This is a joint customization — either roommate can initiate changes, and the result is visible to both.
+
+## Privacy: What Gets Shared via Roomie ID
+
+When you authenticate with a partner housing platform using your Roomie ID, only the data you explicitly approve on the consent screen is shared. The exact data depends on which **OAuth scopes** the platform requests:
+
+| Scope | Data Shared |
+|---|---|
+| `profile:read` | `@handle`, display name, email, demographics |
+| `verification:read` | Student verification status and verified-at timestamp |
+| `network:read` | Current confirmed roommate partner details |
+
+You can review and revoke access to any connected platform at any time from **Settings → Connected Apps**.
+
+For a full breakdown of what each scope exposes, see the [Renter Passport](/features/renter-passport) page.

@@ -1,0 +1,148 @@
+---
+title: "Browse Vetted Hostel Listings on the Roomie API"
+sidebarTitle: "Housing"
+description: "Retrieve geo-targeted, admin-vetted student hostel listings near Nigerian campuses, available exclusively to confirmed roommate pairs with an active agreement."
+---
+
+The Roomie housing catalog surfaces locally verified student hostels near Nigerian campuses. Unlike public listing platforms where fake agents are rampant, every provider in this catalog has been reviewed and approved by a Roomie admin. Access to housing listings is deliberately scoped — it is only available to users with a confirmed roommate agreement on a specific connection. This design prevents unverified users from accessing housing contacts and keeps the platform safe for students.
+
+## Access Requirements
+
+Housing access is **connection-scoped**, not globally unlocked. To retrieve listings:
+
+1. You and your roommate must have an `ACTIVE` connection.
+2. A roommate agreement for that connection must be in `CONFIRMED` status (payment received).
+3. Your request must include a valid Bearer token for either participant of that confirmed connection.
+
+<Note>
+  On the Roomie mobile app, the housing page is only reachable from the confirmed roommate's private chat header, not from the main navigation. This is intentional — housing is framed as a shared action for the roommate pair. The API enforces the same gate.
+</Note>
+
+---
+
+## GET /v1/housing
+
+List vetted hostel listings filtered by city and/or university area. Returns paginated results ordered by proximity and availability.
+
+### Authentication
+
+Requires a valid Bearer token for a user who holds a confirmed roommate agreement.
+
+### Query Parameters
+
+<ParamField query="city" type="string">
+  Filter listings by city. Examples: `"Lagos"`, `"Ibadan"`, `"Zaria"`, `"Benin City"`. Case-insensitive.
+</ParamField>
+
+<ParamField query="university_area" type="string">
+  Filter by the university or campus area the hostel serves. Examples: `"UNILAG"`, `"UI"`, `"ABU"`, `"UNIBEN"`. Useful for filtering hostels within walking distance of a specific campus.
+</ParamField>
+
+<CodeGroup>
+```bash Filter by university area (cURL)
+curl "https://api.roomie.app/v1/housing?university_area=UNILAG" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+```bash Filter by city (cURL)
+curl "https://api.roomie.app/v1/housing?city=Lagos&university_area=UNILAG" \
+  -H "Authorization: Bearer <your_token>"
+```
+
+```typescript fetch
+const params = new URLSearchParams({
+  city: "Lagos",
+  university_area: "UNILAG",
+});
+
+const res = await fetch(`https://api.roomie.app/v1/housing?${params}`, {
+  headers: { Authorization: `Bearer ${access_token}` },
+});
+
+const listings = await res.json();
+```
+</CodeGroup>
+
+### Response `200 OK`
+
+```json
+{
+  "data": [
+    {
+      "id": "hostel-uuid-001",
+      "name": "Sunrise Student Suites",
+      "provider_id": "provider-uuid-abc",
+      "city": "Lagos",
+      "university_area": "UNILAG",
+      "address": "14 Akoka Road, Yaba, Lagos",
+      "description": "Self-contained and shared rooms, 5 minutes from UNILAG main gate.",
+      "room_types": ["shared_double", "self_contained"],
+      "price_range": {
+        "min": 180000,
+        "max": 320000,
+        "currency": "NGN",
+        "period": "per_year"
+      },
+      "amenities": ["24hr_power", "water", "security", "wifi"],
+      "verified": true,
+      "available_rooms": 4,
+      "photos": [
+        "https://cdn.roomie.app/housing/sunrise-1.jpg",
+        "https://cdn.roomie.app/housing/sunrise-2.jpg"
+      ],
+      "booking_redirect": {
+        "url": "https://sunrisesuites.ng/book",
+        "params": {
+          "roomie_id": "@adaeze_okafor_emeka_nwosu",
+          "roommate_id": "@emeka_nwosu",
+          "agreement_id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210"
+        }
+      }
+    }
+  ],
+  "total": 12,
+  "page": 1,
+  "limit": 10
+}
+```
+
+<ResponseField name="data" type="array of objects">
+  Array of hostel listing objects. Each listing includes:
+
+  - `id` — UUID of the hostel listing
+  - `name` — Display name of the hostel
+  - `provider_id` — UUID of the registered housing platform/provider
+  - `city` — City where the hostel is located
+  - `university_area` — Campus this hostel primarily serves
+  - `address` — Full street address
+  - `description` — Provider-supplied description
+  - `room_types` — Array of available room configurations
+  - `price_range` — Object with `min`, `max`, `currency`, and `period`
+  - `amenities` — List of available facilities
+  - `verified` — `true` if an admin has confirmed this listing is legitimate
+  - `available_rooms` — Number of rooms currently available for booking
+  - `photos` — Array of CDN photo URLs
+  - `booking_redirect` — Object containing the external booking URL and pre-filled query parameters for joint renter onboarding
+</ResponseField>
+
+<ResponseField name="booking_redirect.params" type="object">
+  Pre-populated query parameters that Roomie appends when redirecting to the housing provider. These establish a joint renter profile on the external platform:
+
+  - `roomie_id` — The unique joint Roomie ID for this roommate pair
+  - `roommate_id` — Your co-roommate's `@username`
+  - `agreement_id` — The UUID of your confirmed roommate agreement
+
+  Housing platforms using [Roomie SSO](/api/oauth-authorize) can use these values to look up the full verified renter passport via `GET /api/oauth/userinfo`.
+</ResponseField>
+
+<ResponseField name="total" type="integer">
+  Total number of listings matching the filter criteria.
+</ResponseField>
+
+## Error Reference
+
+| Status | Cause |
+|--------|-------|
+| `401 Unauthorized` | Missing or invalid Bearer token |
+| `403 Forbidden` | No confirmed roommate agreement exists for the authenticated user. Complete an agreement first via `POST /v1/agreements`. |
+| `404 Not Found` | No listings found for the given filter combination |

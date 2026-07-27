@@ -1,0 +1,128 @@
+---
+title: "Create and Confirm Roommate Agreements on the Roomie API"
+sidebarTitle: "Agreements"
+description: "Formalize a roommate partnership by creating an agreement on a confirmed connection, which unlocks the housing catalog and bill splitting for both users."
+---
+
+A roommate agreement is the formal co-commitment between two matched students on Roomie. Creating an agreement triggers a consent workflow — both users must sign off before the agreement becomes active. Once the accepting roommate pays the one-time ₦2,000 processing fee via Paystack, the agreement is confirmed, both users earn the **Roomie Partner** badge, and the vetted housing catalog is unlocked for that specific connection. Agreements are the gateway to all housing and financial features on the platform.
+
+## POST /v1/agreements
+
+Create a new roommate agreement for an existing connection. This should be called from within the shared chat thread after both users have verbally agreed to move forward together.
+
+### Authentication
+
+Requires a valid Bearer token. The authenticated user must be a participant (initiator or target) of the referenced connection.
+
+### Request Body
+
+<ParamField body="connection_id" type="string" required>
+  The UUID of the `ACTIVE` connection between you and your prospective roommate. The connection must be in `ACTIVE` status — you cannot create an agreement for a `PENDING` or `REJECTED` connection.
+</ParamField>
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.roomie.app/v1/agreements \
+  -H "Authorization: Bearer <your_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "connection_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+  }'
+```
+
+```typescript fetch
+const res = await fetch("https://api.roomie.app/v1/agreements", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${access_token}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    connection_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  }),
+});
+
+const agreement = await res.json();
+```
+</CodeGroup>
+
+### Response `201 Created`
+
+```json
+{
+  "id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+  "connection_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "status": "PENDING_PAYMENT",
+  "initiator": {
+    "id": "3f7e2d1a-bc44-4e91-b9f3-123456789abc",
+    "roomie_id": "@adaeze_okafor",
+    "signed": true
+  },
+  "acceptor": {
+    "id": "8c4b1f22-de91-4a73-bc01-abcdef012345",
+    "roomie_id": "@emeka_nwosu",
+    "signed": false
+  },
+  "payment_url": "https://checkout.paystack.com/agreement-payment-link",
+  "created_at": "2025-11-14T13:00:00Z"
+}
+```
+
+<ResponseField name="id" type="string">
+  UUID of the newly created agreement. Store this — it is required for housing queries and is referenced in all split payment records linked to this roommate pair.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  The agreement lifecycle status. Possible values:
+
+  - `PENDING_PAYMENT` — Created but the accepting roommate has not yet paid
+  - `CONFIRMED` — Payment received; both roommates are fully onboarded
+  - `CANCELLED` — One or both parties cancelled before confirmation
+</ResponseField>
+
+<ResponseField name="initiator" type="object">
+  The user who created the agreement. Their `signed` field is `true` immediately.
+</ResponseField>
+
+<ResponseField name="acceptor" type="object">
+  The co-roommate who must sign and pay to confirm the agreement. Their `signed` field starts as `false`.
+</ResponseField>
+
+<ResponseField name="payment_url" type="string">
+  A Paystack checkout URL for the ₦2,000 agreement processing fee. Redirect the accepting roommate to this URL or embed it in the chat interface. Once payment is confirmed via webhook, `status` transitions to `CONFIRMED`.
+</ResponseField>
+
+## Agreement Lifecycle
+
+```
+POST /v1/agreements
+       │
+       ▼
+ PENDING_PAYMENT ──── acceptor pays ₦2,000 ────► CONFIRMED
+       │                                               │
+       └──── cancelled by either party ──────► CANCELLED
+```
+
+Once the agreement reaches `CONFIRMED` status:
+
+- Both users receive the **Roomie Partner** badge (visible only in their private chat thread)
+- The [housing endpoint](/api/housing) becomes accessible for this connection
+- Bill splits and recurring splits can be created for this pair
+- A unique joint Roomie ID is generated for SSO and housing partner redirects
+
+<Note>
+  Agreement confirmation is handled asynchronously via the Paystack webhook. Poll `GET /v1/connections/:id` or listen to notification events to detect when an agreement moves to `CONFIRMED`.
+</Note>
+
+<Warning>
+  Only one active agreement can exist per connection at a time. Attempting to create a second agreement for the same `connection_id` while one is `PENDING_PAYMENT` or `CONFIRMED` returns `400 Bad Request`.
+</Warning>
+
+## Error Reference
+
+| Status | Cause |
+|--------|-------|
+| `400 Bad Request` | Connection is not in `ACTIVE` status, or an agreement already exists for this connection |
+| `401 Unauthorized` | Missing or invalid Bearer token |
+| `403 Forbidden` | Authenticated user is not a participant of the referenced connection |
+| `404 Not Found` | No connection found with the given `connection_id` |

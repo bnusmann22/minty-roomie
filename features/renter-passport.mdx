@@ -1,0 +1,91 @@
+---
+title: "Renter Passport: Share Your Verified Housing Credentials"
+sidebarTitle: "Renter Passport"
+description: "The Roomie Renter Passport is a portable credential combining your verified student identity, roommate partner, and financial history for housing applications."
+---
+
+When you apply for student accommodation in Nigeria, you're typically asked to submit the same proof of enrollment, identity documents, and financial details over and over again — to different hostels, agencies, and landlords, each with their own forms. The Renter Passport changes that. It bundles everything a housing provider needs to know about you and your roommate partner into a single verified credential that travels with your Roomie ID.
+
+## What Is the Renter Passport?
+
+The Renter Passport is a portable digital credential that aggregates the verified data Roomie already holds about you and your confirmed roommate partner. Rather than a document you download or print, it is a structured data payload delivered automatically to housing providers when you authenticate via [Roomie's OAuth SSO](/features/oauth-sso) or share your profile through the housing catalog.
+
+It is a **joint credential by design** — when a housing provider receives your Renter Passport, they receive the combined record of both roommates in your confirmed agreement. This reflects the reality of joint tenancy: landlords need to evaluate both occupants, not just the person submitting the form.
+
+## Why It Exists
+
+Student rental scams and fraudulent applications are widespread in Nigeria. Fake agents, unverifiable income claims, and misrepresented student status create risk on both sides of the transaction. The Renter Passport addresses this directly:
+
+- **For landlords and hostels:** It eliminates unverifiable self-reported data. Every piece of information in the passport has been verified by Roomie — student ID documents are reviewed by Roomie administrators before the `VERIFIED_STUDENT` badge is issued.
+- **For students:** It removes the friction of redundant paperwork. You submit your details once to Roomie; partner platforms receive them automatically, with your permission.
+- **For the ecosystem:** Because both roommates are verified and presented as a unit, housing providers can evaluate co-tenancy risk accurately, reducing disputes over joint liability.
+
+## What the Renter Passport Contains
+
+The passport aggregates data across four categories:
+
+### Identity & Verification
+- Student verification status (`VERIFIED` or `PENDING`)
+- Verification timestamp (when your student ID was approved)
+- Your Roomie ID (`@handle`) as the stable unique identifier
+
+### University & Academic Record
+- University name (e.g. UNILAG, OAU, UI)
+- Faculty
+- Current year of study
+
+### Housing Preferences
+- Minimum and maximum monthly budget (in ₦)
+- Lifestyle tags (e.g. `quiet`, `no_smoking`, `early_riser`, `pet_friendly`)
+
+### Roommate Partner Details
+- Your confirmed roommate partner's Roomie ID and display name
+- Their verification status (delivered via the `network:read` scope)
+
+### Financial History on Roomie
+- Bill split payment track record — whether you consistently settle shared expenses on time
+- The `GOOD_PAYER` badge, if earned, reflects five or more consecutive on-time bill settlements and is visible in your passport data
+
+<Info>
+  Your Renter Passport data is never shared without your explicit approval. Every time a housing platform requests access, you are shown a consent screen listing exactly which data categories they are requesting. You must tap **Allow** before any data leaves Roomie. You can revoke a platform's access at any time from **Settings → Connected Apps**.
+</Info>
+
+## How the Passport Is Shared
+
+There are two ways a housing provider can receive your Renter Passport:
+
+### 1. Automatically via OAuth SSO
+When you click a **"Connect with Roomie ID"** button on a partner housing platform and approve the consent screen, the platform receives your Renter Passport data through the `/api/oauth/userinfo` endpoint. The data returned depends on the scopes the platform requested:
+
+| Scope | Passport Data Included |
+|---|---|
+| `profile:read` | Roomie ID, display name, email, demographics, budget preferences, lifestyle tags |
+| `verification:read` | Student verification status and verified-at timestamp |
+| `network:read` | Confirmed roommate partner ID, handle, and display name |
+
+See the [OAuth SSO page](/features/oauth-sso) for the full endpoint reference and example response.
+
+### 2. Manually via the Housing Catalog
+Inside the Roomie app, when you browse the vetted hostel catalog and click through to a housing provider, Roomie automatically passes your joint connection ID, your roommate's username, and your Roommate Agreement ID as query parameters. This establishes a joint renter profile on the provider's side without requiring a separate OAuth flow.
+
+## The Joint Credential: Both Roommates, One Application
+
+One of the most important properties of the Renter Passport is that it is **scoped to a confirmed Roommate Agreement**, not to an individual. When a housing provider queries the userinfo endpoint with a valid access token, they receive:
+
+- The authenticated student's full passport data
+- The confirmed roommate partner's Roomie ID and display name (via `network:read`)
+
+This means a landlord reviewing a joint application sees both occupants' verified identities in a single API response — the same way a joint tenancy agreement names both signatories. There is no need for two separate applications or for one roommate to vouch manually for the other.
+
+<Note>
+  Housing access in Roomie is always scoped to a specific confirmed Roommate Agreement. A student who has not completed an agreement does not have a joint connection ID to share, and the `current_roommate_partner` field in the passport will be absent from the userinfo response.
+</Note>
+
+## What's Coming: Escrow and Joint Checkout
+
+The Renter Passport is the foundation for Roomie's upcoming financial features:
+
+- **Joint Checkout Verification:** When both roommates are ready to move out, a digital checkout consent workflow requires sign-off from both parties before caution deposits are released. This checkout status will eventually be reflected in the passport, giving landlords a clear record of how previous tenancies ended.
+- **Escrow-Backed Deposits:** Caution deposits will be held in escrow and automatically split back to each roommate in their exact contribution ratio, triggered by an approved checkout record tied to the Renter Passport.
+
+These features will make the Renter Passport a full end-to-end tenancy record — covering the application, the tenancy, and the exit.

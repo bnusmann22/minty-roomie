@@ -1,0 +1,179 @@
+---
+title: "Create and Retrieve Roommate Connections on Roomie"
+sidebarTitle: "Connections"
+description: "Send roommate connection requests and retrieve connection details to track the status of your roommate partnerships on the Roomie platform."
+---
+
+Connections represent the formal relationship between two students on Roomie. When a student sends a connection request to another and that request is accepted, the two users become 1st-degree connections — the foundation for roommate agreements, shared messaging, bill splits, and housing access. This page covers creating a connection request and retrieving a connection's current state.
+
+## Connection Statuses
+
+A connection progresses through a lifecycle:
+
+| Status | Description |
+|--------|-------------|
+| `PENDING` | Request sent; awaiting the target user's response |
+| `ACTIVE` | Both users have accepted; full roommate features unlocked |
+| `REJECTED` | The target user declined the request |
+| `ENDED` | A previously active connection has been closed |
+
+---
+
+## POST /v1/connections
+
+Send a roommate connection request to another user. The target user will receive a notification and can accept or decline from within the app.
+
+### Authentication
+
+Requires a valid Bearer token.
+
+### Request Body
+
+<ParamField body="target_user_id" type="string" required>
+  The UUID of the user you want to connect with. Retrieve this from a profile response or the discover directory.
+</ParamField>
+
+<CodeGroup>
+```bash cURL
+curl -X POST https://api.roomie.app/v1/connections \
+  -H "Authorization: Bearer <your_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target_user_id": "8c4b1f22-de91-4a73-bc01-abcdef012345"
+  }'
+```
+
+```typescript fetch
+const res = await fetch("https://api.roomie.app/v1/connections", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${access_token}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    target_user_id: "8c4b1f22-de91-4a73-bc01-abcdef012345",
+  }),
+});
+
+const connection = await res.json();
+```
+</CodeGroup>
+
+### Response `201 Created`
+
+```json
+{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "status": "PENDING",
+  "initiator": {
+    "id": "3f7e2d1a-bc44-4e91-b9f3-123456789abc",
+    "username": "adaeze_okafor",
+    "roomie_id": "@adaeze_okafor"
+  },
+  "target": {
+    "id": "8c4b1f22-de91-4a73-bc01-abcdef012345",
+    "username": "emeka_nwosu",
+    "roomie_id": "@emeka_nwosu"
+  },
+  "created_at": "2025-11-14T10:00:00Z"
+}
+```
+
+<ResponseField name="id" type="string">
+  UUID of the newly created connection. Store this — it is required when creating an agreement, sending messages, and creating bill splits.
+</ResponseField>
+
+<ResponseField name="status" type="string">
+  Initial status is always `"PENDING"` immediately after creation.
+</ResponseField>
+
+<ResponseField name="initiator" type="object">
+  Minimal profile object for the user who sent the request.
+</ResponseField>
+
+<ResponseField name="target" type="object">
+  Minimal profile object for the user who received the request.
+</ResponseField>
+
+<ResponseField name="created_at" type="string">
+  ISO 8601 timestamp of when the connection was created.
+</ResponseField>
+
+---
+
+## GET /v1/connections/:id
+
+Retrieve full details for a specific connection by its UUID. Use this to check the current status of a pending request, or to retrieve metadata associated with an active roommate partnership.
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The UUID of the connection to retrieve.
+</ParamField>
+
+### Authentication
+
+Requires a valid Bearer token. You must be either the initiator or the target of the connection to access it.
+
+<CodeGroup>
+```bash cURL
+curl https://api.roomie.app/v1/connections/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: Bearer <your_token>"
+```
+
+```typescript fetch
+const res = await fetch(
+  "https://api.roomie.app/v1/connections/a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  {
+    headers: { Authorization: `Bearer ${access_token}` },
+  }
+);
+
+const connection = await res.json();
+```
+</CodeGroup>
+
+### Response `200 OK`
+
+```json
+{
+  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "status": "ACTIVE",
+  "initiator": {
+    "id": "3f7e2d1a-bc44-4e91-b9f3-123456789abc",
+    "username": "adaeze_okafor",
+    "roomie_id": "@adaeze_okafor",
+    "profile_photo": "https://cdn.roomie.app/photos/adaeze.jpg"
+  },
+  "target": {
+    "id": "8c4b1f22-de91-4a73-bc01-abcdef012345",
+    "username": "emeka_nwosu",
+    "roomie_id": "@emeka_nwosu",
+    "profile_photo": "https://cdn.roomie.app/photos/emeka.jpg"
+  },
+  "agreement_id": "f9e8d7c6-b5a4-3210-fedc-ba9876543210",
+  "created_at": "2025-11-14T10:00:00Z",
+  "updated_at": "2025-11-14T12:45:00Z"
+}
+```
+
+<ResponseField name="status" type="string">
+  Current lifecycle status: `PENDING`, `ACTIVE`, `REJECTED`, or `ENDED`.
+</ResponseField>
+
+<ResponseField name="agreement_id" type="string">
+  UUID of the associated roommate agreement, if one has been created for this connection. `null` if no agreement exists yet.
+</ResponseField>
+
+<Note>
+  Once a connection reaches `ACTIVE` status (both users have accepted and an agreement has been paid), housing access is unlocked for that specific connection. See the [Housing](/api/housing) endpoint for details.
+</Note>
+
+## Error Reference
+
+| Status | Cause |
+|--------|-------|
+| `401 Unauthorized` | Missing or invalid Bearer token |
+| `403 Forbidden` | You are neither the initiator nor the target of this connection |
+| `404 Not Found` | No connection found with the given ID |
+| `400 Bad Request` | A pending or active connection with the target user already exists |

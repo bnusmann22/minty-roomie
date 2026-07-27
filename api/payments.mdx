@@ -1,0 +1,152 @@
+---
+title: "Handle Paystack Payment Webhooks on the Roomie API"
+sidebarTitle: "Payments"
+description: "Integrate with the Roomie Paystack webhook endpoint to receive and process payment events for agreements, bill splits, and housing fees."
+---
+
+Roomie uses [Paystack](https://paystack.com) as its payment processor for all monetary transactions on the platform — roommate agreement processing fees, bill split collections, and housing deposit payments. The webhook endpoint receives signed event notifications directly from Paystack whenever a payment event occurs, then dispatches the appropriate platform logic (confirming agreements, marking split items as paid, awarding badges, etc.).
+
+If you are building an integration that initiates payments on behalf of Roomie users (e.g., a housing partner processing joint rent), this page explains the webhook contract.
+
+## POST /v1/payments/webhook
+
+Receives payment event notifications from Paystack. Paystack calls this endpoint directly — you do not call it yourself. Instead, you configure your Paystack dashboard to POST events to this URL.
+
+<Warning>
+  This endpoint is called by Paystack's servers, not by your application. Do **not** POST to this endpoint directly in production. Use Paystack's webhook simulator for local development and testing.
+</Warning>
+
+### Authentication
+
+This endpoint does not use Bearer token authentication. Instead, it verifies the `x-paystack-signature` header: a HMAC-SHA512 signature of the raw request body signed with your Paystack secret key. Requests with an invalid or missing signature are rejected with `401 Unauthorized`.
+
+```
+x-paystack-signature: <hmac_sha512_signature>
+```
+
+### Supported Event Types
+
+| Event | Trigger | Platform Action |
+|-------|---------|-----------------|
+| `charge.success` | Payment collected successfully | Confirms agreements, marks split items as `PAID`, unlocks housing |
+| `transfer.success` | Refund or payout transferred | Marks caution deposit refund as complete |
+| `transfer.failed` | Payout failed | Notifies affected users; queues retry |
+
+### Request Body (sent by Paystack)
+
+Paystack sends a JSON payload for every event. The Roomie webhook handler reads the `event` field and routes to the correct handler.
+
+```json
+{
+  "event": "charge.success",
+  "data": {
+    "id": 2349182,
+    "domain": "live",
+    "status": "success",
+    "reference": "roomie_split_bb12cc34_item_001",
+    "amount": 20000000,
+    "currency": "NGN",
+    "paid_at": "2025-11-14T15:00:00.000Z",
+    "customer": {
+      "email": "emeka@unilag.edu.ng",
+      "customer_code": "CUS_abc123"
+    },
+    "metadata": {
+      "roomie_event_type": "BILL_SPLIT_PAYMENT",
+      "split_item_id": "item-uuid-002",
+      "connection_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    }
+  }
+}
+```
+
+### Response `200 OK`
+
+The Roomie webhook handler responds with `200 OK` to acknowledge receipt. Paystack retries delivery if it does not receive a `200` within 30 seconds.
+
+```json
+{
+  "received": true
+}
+```
+
+## Roomie Metadata Convention
+
+To help the Roomie webhook handler route events correctly, Paystack charges initiated by the platform include a `metadata` object with the following fields:
+
+| Field | Description |
+|-------|-------------|
+| `roomie_event_type` | One of `AGREEMENT_PAYMENT`, `BILL_SPLIT_PAYMENT`, `HOUSING_FEE_PAYMENT` |
+| `agreement_id` | Present for `AGREEMENT_PAYMENT` events |
+| `split_item_id` | Present for `BILL_SPLIT_PAYMENT` events |
+| `connection_id` | Always present — links the payment to a roommate pair |
+
+## Post-Payment Platform Actions
+
+When a `charge.success` event is received and verified, Roomie executes the following actions based on `roomie_event_type`:
+
+### `AGREEMENT_PAYMENT`
+
+1. Agreement status transitions from `PENDING_PAYMENT` → `CONFIRMED`
+2. Connection status transitions to `ACTIVE` (if not already)
+3. Both users are awarded the **Roomie Partner** badge
+4. Housing catalog is unlocked for this connection
+5. A joint Roomie ID is generated for SSO and housing partner redirects
+6. Both users receive an `AGREEMENT_CONFIRMED` notification
+
+### `BILL_SPLIT_PAYMENT`
+
+1. The individual `bill_split_items` record is marked `PAID`
+2. If both items in the split are `PAID`, the parent split is marked `SETTLED`
+3. The paying user's on-time streak is evaluated for the **Good Payer** badge
+4. A `BILL_SPLIT_PAID` notification is sent to the co-roommate
+
+## Verifying Webhook Signatures
+
+Validate all incoming webhook requests before processing:
+
+```typescript
+import crypto from "crypto";
+
+function verifyPaystackSignature(
+  rawBody: Buffer,
+  signature: string,
+  secretKey: string
+): boolean {
+  const hash = crypto
+    .createHmac("sha512", secretKey)
+    .update(rawBody)
+    .digest("hex");
+
+  return hash === signature;
+}
+
+// In your Express/NestJS handler:
+app.post(
+  "/v1/payments/webhook",
+  express.raw({ type: "application/json" }),
+  (req, res) => {
+    const signature = req.headers["x-paystack-signature"] as string;
+    const isValid = verifyPaystackSignature(req.body, signature, process.env.PAYSTACK_SECRET_KEY!);
+
+    if (!isValid) {
+      return res.status(401).json({ message: "Invalid signature" });
+    }
+
+    const event = JSON.parse(req.body.toString());
+    // handle event...
+    res.json({ received: true });
+  }
+);
+```
+
+<Note>
+  Always parse the raw request body (not the JSON-parsed version) when computing the HMAC signature. Middleware that pre-parses JSON may alter whitespace or key ordering, causing signature mismatches.
+</Note>
+
+## Error Reference
+
+| Status | Cause |
+|--------|-------|
+| `401 Unauthorized` | Missing or invalid `x-paystack-signature` header |
+| `400 Bad Request` | Malformed JSON payload or unrecognised event type |

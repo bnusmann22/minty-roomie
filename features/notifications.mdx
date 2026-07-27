@@ -1,0 +1,103 @@
+---
+title: "Stay Up to Date with Roomie Push Notification Alerts"
+sidebarTitle: "Notifications"
+description: "Enable Roomie push notifications to get instant alerts for connection requests, agreement updates, bill reminders, and checkout consent requests."
+---
+
+Roomie sends push notifications directly to your browser so you never miss a critical update — whether a prospective roommate has sent you a connection request, a bill is coming due, or your roommate has submitted a checkout request that needs your approval. You can manage all of these alerts from the in-app Notification Center at `/notifications`, and control exactly which types you receive from your account Settings.
+
+## Types of Notifications
+
+<AccordionGroup>
+  <Accordion title="Connection Requests" icon="user-plus">
+    You receive a notification whenever another student sends you a connection request on Roomie. The alert includes their name and a link to their profile so you can review their compatibility score, verification badge, and lifestyle tags before responding.
+  </Accordion>
+  <Accordion title="Agreement Co-Signing Requests" icon="file-signature">
+    When your roommate proposes a Roommate Agreement inside your chat thread, Roomie notifies you to review and co-sign. You also receive a confirmation notification once both parties have signed and the ₦2,000 processing fee is paid — unlocking the Housing Catalog for your pair.
+  </Accordion>
+  <Accordion title="Bill Due Reminders" icon="receipt">
+    Roomie sends reminders before shared bills linked to your active agreements are due. These reminders give you enough time to settle your portion of a split before it is marked overdue in the shared ledger.
+  </Accordion>
+  <Accordion title="Payment Confirmations" icon="circle-check">
+    Receive a notification each time a payment linked to your account is confirmed — including your individual share of a split bill, the Roommate Agreement processing fee, and caution deposit transactions.
+  </Accordion>
+  <Accordion title="Checkout Consent Requests" icon="door-open">
+    When your roommate initiates a checkout request, you are immediately notified to review their checklist, check any outstanding bill balances, and approve or reject the request. Timely responses ensure the deposit refund is not delayed.
+  </Accordion>
+  <Accordion title="System Announcements" icon="bullhorn">
+    Roomie occasionally sends platform-wide announcements about new features, scheduled maintenance windows, or policy updates that affect your account. These notifications cannot be disabled but are sent infrequently.
+  </Accordion>
+</AccordionGroup>
+
+## How to Enable Push Notifications
+
+Roomie uses **Web Push Notifications** delivered through your browser — no additional app download is required. Follow these steps to turn them on.
+
+<Steps>
+  <Step title="Open Roomie in your browser">
+    Navigate to the Roomie web app and sign in to your account. Push notifications work in Chrome, Edge, Firefox, and other modern browsers that support the Web Push standard.
+  </Step>
+  <Step title="Respond to the browser permission prompt">
+    When you first sign in or visit the Notifications page, your browser displays a permission banner asking: **"Roomie wants to send you notifications."** Click **Allow** to enable push notifications for your device.
+  </Step>
+  <Step title="Confirm in Roomie Settings">
+    Open **Settings → Notifications** and verify that push notifications are toggled on. You can also adjust which notification categories you receive from this screen.
+  </Step>
+  <Step title="Check your first notification">
+    Roomie sends a welcome notification to confirm that push delivery is working on your device. If it arrives, you are all set.
+  </Step>
+</Steps>
+
+## The Notification Center
+
+Your in-app **Notification Center** at `/notifications` stores the full history of alerts Roomie has sent you. You can access it at any time from the bell icon in the top navigation bar.
+
+Inside the Notification Center, you can:
+
+- View **unread notifications** highlighted at the top of the list
+- Mark individual notifications as read, or **mark all as read** in one tap
+- Tap any notification to navigate directly to the relevant screen — a chat thread, a bill split, a checkout request, or a profile
+- Scroll through your full notification history without losing older alerts
+
+Unread notification count is displayed as a badge on the bell icon so you can see at a glance how many updates are waiting.
+
+## Managing Notification Preferences
+
+You can control which notification categories you receive from **Settings → Notifications**.
+
+| Notification Type | Can be disabled? |
+|---|---|
+| Connection requests | Yes |
+| Agreement co-signing requests | Yes |
+| Bill due reminders | Yes |
+| Payment confirmations | Yes |
+| Checkout consent requests | Yes |
+| System announcements | No |
+
+Changes to your preferences take effect immediately. Disabling a category means you will not receive push alerts for that type, but you can still view those events in the Notification Center.
+
+## If Notifications Are Not Arriving
+
+If you have enabled push notifications but are not receiving alerts, work through the following checks.
+
+<Steps>
+  <Step title="Check your browser's site permissions">
+    Open your browser settings and navigate to **Site Settings → Notifications**. Find `roomie.app` (or your Roomie domain) in the list and confirm its status is set to **Allow**, not **Block** or **Ask**.
+  </Step>
+  <Step title="Re-enable notifications in Roomie Settings">
+    Go to **Settings → Notifications** inside the Roomie app, toggle push notifications off, then toggle them back on. This re-registers your browser's push subscription with Roomie's servers.
+  </Step>
+  <Step title="Check your device's Do Not Disturb settings">
+    On mobile browsers, system-level **Do Not Disturb** or **Focus Mode** settings can suppress incoming push notifications even when browser permissions are granted. Check your device settings and whitelist Roomie if needed.
+  </Step>
+  <Step title="Try a different browser or device">
+    If the issue persists, open Roomie in a different browser (for example, Chrome if you were using Firefox) and re-grant notification permission. This helps isolate whether the problem is browser-specific.
+  </Step>
+  <Step title="Contact support">
+    If none of the above steps resolve the issue, contact Roomie support from the **Help** section in your account menu. Include your browser name, version, and the device type so the team can diagnose the push subscription.
+  </Step>
+</Steps>
+
+<Note>
+  Roomie push notifications are browser-based (Web Push). They do not require a native iOS or Android app. However, iOS Safari has limited Web Push support on older versions — make sure your Safari browser is updated to iOS 16.4 or later for full functionality.
+</Note>

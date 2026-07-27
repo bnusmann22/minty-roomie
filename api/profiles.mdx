@@ -1,0 +1,206 @@
+---
+title: "Read and Update Student Profiles on the Roomie API"
+sidebarTitle: "Profiles"
+description: "Retrieve any student profile by UUID and update the authenticated user's own profile fields including budget, lifestyle tags, and photos."
+---
+
+Profiles are the core identity objects on the Roomie platform. Every student has a profile that captures their academic details, target budget, lifestyle preferences, and verification status. Roommate compatibility scoring, the discover directory, and housing access all depend on profile data being complete and accurate. This page covers reading a profile by ID and updating the authenticated user's own profile.
+
+## GET /v1/profiles/:id
+
+Retrieve a student profile by its UUID. This endpoint is useful for rendering profile cards in discover feeds, checking a potential roommate's details, or confirming verification status before initiating a connection.
+
+### Path Parameters
+
+<ParamField path="id" type="string" required>
+  The UUID of the profile to retrieve.
+</ParamField>
+
+### Authentication
+
+Requires a valid Bearer token in the `Authorization` header.
+
+<CodeGroup>
+```bash cURL
+curl https://api.roomie.app/v1/profiles/3f7e2d1a-bc44-4e91-b9f3-123456789abc \
+  -H "Authorization: Bearer <your_token>"
+```
+
+```typescript fetch
+const res = await fetch(
+  "https://api.roomie.app/v1/profiles/3f7e2d1a-bc44-4e91-b9f3-123456789abc",
+  {
+    headers: { Authorization: `Bearer ${access_token}` },
+  }
+);
+
+const profile = await res.json();
+```
+</CodeGroup>
+
+### Response `200 OK`
+
+```json
+{
+  "id": "3f7e2d1a-bc44-4e91-b9f3-123456789abc",
+  "username": "adaeze_okafor",
+  "display_name": "Adaeze Okafor",
+  "roomie_id": "@adaeze_okafor",
+  "bio": "300L Chemistry student at UNILAG. Early riser, very tidy.",
+  "university": "UNILAG",
+  "year_of_study": 3,
+  "min_budget": 80000,
+  "max_budget": 150000,
+  "lifestyle_tags": ["early_riser", "no_smoking", "quiet"],
+  "profile_photo": "https://cdn.roomie.app/photos/adaeze.jpg",
+  "cover_photo": "https://cdn.roomie.app/covers/adaeze_cover.jpg",
+  "verification_status": "VERIFIED",
+  "student_verified": true,
+  "network_size": 4,
+  "badges": [
+    {
+      "code": "VERIFIED_STUDENT",
+      "name": "Verified Student",
+      "icon_svg": "verified-badge.svg"
+    }
+  ],
+  "created_at": "2025-09-01T10:00:00Z"
+}
+```
+
+<ResponseField name="id" type="string">
+  The profile's UUID.
+</ResponseField>
+
+<ResponseField name="username" type="string">
+  The user's unique handle on the platform (without the `@` prefix).
+</ResponseField>
+
+<ResponseField name="roomie_id" type="string">
+  The user's full Roomie ID including the `@` prefix. Used as the primary identifier in SSO and housing partner redirects.
+</ResponseField>
+
+<ResponseField name="bio" type="string">
+  Free-text self-description supplied by the user.
+</ResponseField>
+
+<ResponseField name="min_budget" type="integer">
+  Minimum monthly rent budget in Nigerian Naira (NGN).
+</ResponseField>
+
+<ResponseField name="max_budget" type="integer">
+  Maximum monthly rent budget in Nigerian Naira (NGN).
+</ResponseField>
+
+<ResponseField name="lifestyle_tags" type="array of strings">
+  Tags representing the user's living preferences (e.g., `"quiet"`, `"no_smoking"`, `"pet_friendly"`).
+</ResponseField>
+
+<ResponseField name="verification_status" type="string">
+  One of `"PENDING"`, `"VERIFIED"`, or `"REJECTED"`. Indicates whether the student's institutional ID has been approved by a Roomie admin.
+</ResponseField>
+
+<ResponseField name="network_size" type="integer">
+  The total number of 1st-degree connections this user has (roommates they have or have had active agreements with).
+</ResponseField>
+
+<ResponseField name="badges" type="array of objects">
+  List of earned badges. Each badge has a `code`, `name`, and optional `icon_svg`.
+</ResponseField>
+
+---
+
+## PATCH /v1/profiles/me
+
+Update fields on the authenticated user's own profile. Only the fields you include in the request body are updated — omitted fields retain their existing values.
+
+### Authentication
+
+Requires a valid Bearer token. The profile updated is always the one belonging to the token's owner.
+
+### Request Body
+
+<ParamField body="username" type="string">
+  A new unique handle. Must be lowercase alphanumeric with underscores only. Returns `400` if already taken.
+</ParamField>
+
+<ParamField body="bio" type="string">
+  A free-text description of up to 300 characters.
+</ParamField>
+
+<ParamField body="min_budget" type="integer">
+  Minimum monthly rent budget in Naira.
+</ParamField>
+
+<ParamField body="max_budget" type="integer">
+  Maximum monthly rent budget in Naira. Must be greater than or equal to `min_budget`.
+</ParamField>
+
+<ParamField body="lifestyle_tags" type="array of strings">
+  Replaces the entire lifestyle tags array. Pass an empty array to clear all tags.
+</ParamField>
+
+<ParamField body="profile_photo" type="string">
+  URL to the new profile photo. Upload the image to your CDN or use the Roomie media upload endpoint first, then pass the resulting URL here.
+</ParamField>
+
+<ParamField body="cover_photo" type="string">
+  URL to the new cover/banner photo.
+</ParamField>
+
+<CodeGroup>
+```bash cURL
+curl -X PATCH https://api.roomie.app/v1/profiles/me \
+  -H "Authorization: Bearer <your_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bio": "Final year Law student at ABU Zaria. Night owl, loves jazz.",
+    "min_budget": 60000,
+    "max_budget": 120000,
+    "lifestyle_tags": ["night_owl", "no_smoking", "music_ok"]
+  }'
+```
+
+```typescript fetch
+const res = await fetch("https://api.roomie.app/v1/profiles/me", {
+  method: "PATCH",
+  headers: {
+    Authorization: `Bearer ${access_token}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    bio: "Final year Law student at ABU Zaria. Night owl, loves jazz.",
+    min_budget: 60000,
+    max_budget: 120000,
+    lifestyle_tags: ["night_owl", "no_smoking", "music_ok"],
+  }),
+});
+
+const updated = await res.json();
+```
+</CodeGroup>
+
+### Response `200 OK`
+
+Returns the full updated profile object (same shape as `GET /v1/profiles/:id`).
+
+```json
+{
+  "id": "3f7e2d1a-bc44-4e91-b9f3-123456789abc",
+  "username": "adaeze_okafor",
+  "bio": "Final year Law student at ABU Zaria. Night owl, loves jazz.",
+  "min_budget": 60000,
+  "max_budget": 120000,
+  "lifestyle_tags": ["night_owl", "no_smoking", "music_ok"],
+  "verification_status": "VERIFIED",
+  "updated_at": "2025-11-14T09:30:00Z"
+}
+```
+
+## Error Reference
+
+| Status | Cause |
+|--------|-------|
+| `401 Unauthorized` | Missing or invalid Bearer token |
+| `404 Not Found` | Profile with the specified ID does not exist |
+| `400 Bad Request` | `max_budget` is less than `min_budget`, or `username` is already taken |

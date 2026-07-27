@@ -1,0 +1,138 @@
+---
+title: "Explore Mutual Connections on the Roomie Network API"
+sidebarTitle: "Network"
+description: "Retrieve mutual 1st-degree connections shared between the authenticated user and any student to surface social proof and build roommate trust signals."
+---
+
+Roomie's connection network maps the web of roommate relationships across the platform — much like a professional network, but built around co-living history. When two students have a confirmed roommate agreement, they become 1st-degree connections. The network API lets you surface the mutual connections between any two users, enabling the platform's social trust features: seeing how many people you both know builds safety and confidence before agreeing to live together.
+
+## Connection Degrees
+
+| Degree | Definition |
+|--------|-----------|
+| **1st-degree** | Users you have (or have had) a confirmed roommate agreement with |
+| **2nd-degree** | Roommates of your roommates — people connected to your 1st-degree connections, but not directly to you |
+| **Mutual** | 1st-degree connections you share with another specific user |
+
+Mutual connections are surfaced in the Discover feed (e.g., *"Connected to 3 of your friends"*) to help students make safer decisions when considering a new roommate.
+
+---
+
+## GET /v1/network/mutual/:userId
+
+Returns an array of profile objects representing the 1st-degree connections shared between the authenticated user and the specified user. Use this to power trust indicators on profile cards and connection request modals.
+
+### Path Parameters
+
+<ParamField path="userId" type="string" required>
+  UUID of the user whose mutual connections with the authenticated user you want to retrieve.
+</ParamField>
+
+### Authentication
+
+Requires a valid Bearer token. The mutual connections computed are always relative to the authenticated user.
+
+<CodeGroup>
+```bash cURL
+curl https://api.roomie.app/v1/network/mutual/8c4b1f22-de91-4a73-bc01-abcdef012345 \
+  -H "Authorization: Bearer <your_token>"
+```
+
+```typescript fetch
+const userId = "8c4b1f22-de91-4a73-bc01-abcdef012345";
+
+const res = await fetch(
+  `https://api.roomie.app/v1/network/mutual/${userId}`,
+  {
+    headers: { Authorization: `Bearer ${access_token}` },
+  }
+);
+
+const mutuals = await res.json();
+```
+</CodeGroup>
+
+### Response `200 OK`
+
+Returns an array of minimal profile objects. An empty array means the two users share no mutual 1st-degree connections.
+
+```json
+[
+  {
+    "id": "cc99dd11-ee22-ff33-0044-556677889900",
+    "username": "chisom_eze",
+    "roomie_id": "@chisom_eze",
+    "display_name": "Chisom Eze",
+    "profile_photo": "https://cdn.roomie.app/photos/chisom.jpg",
+    "verification_status": "VERIFIED",
+    "university": "UNILAG"
+  },
+  {
+    "id": "aa11bb22-cc33-dd44-ee55-ff6677889900",
+    "username": "tunde_bello",
+    "roomie_id": "@tunde_bello",
+    "display_name": "Tunde Bello",
+    "profile_photo": "https://cdn.roomie.app/photos/tunde.jpg",
+    "verification_status": "VERIFIED",
+    "university": "UNILAG"
+  }
+]
+```
+
+<ResponseField name="[].id" type="string">
+  UUID of the mutual connection's profile.
+</ResponseField>
+
+<ResponseField name="[].username" type="string">
+  The user's unique handle (without `@`).
+</ResponseField>
+
+<ResponseField name="[].roomie_id" type="string">
+  The full `@username` Roomie ID.
+</ResponseField>
+
+<ResponseField name="[].display_name" type="string">
+  The user's full display name.
+</ResponseField>
+
+<ResponseField name="[].profile_photo" type="string">
+  CDN URL of the user's profile photo.
+</ResponseField>
+
+<ResponseField name="[].verification_status" type="string">
+  Whether this mutual connection is a verified student (`"VERIFIED"` or `"PENDING"`).
+</ResponseField>
+
+<ResponseField name="[].university" type="string">
+  University name for this mutual connection.
+</ResponseField>
+
+## Displaying Mutual Connections in UI
+
+When rendering profile cards in the discover feed, use this endpoint to show a trust indicator:
+
+```typescript
+const mutuals = await fetchMutualConnections(candidateUserId);
+
+if (mutuals.length > 0) {
+  const names = mutuals
+    .slice(0, 2)
+    .map((m) => m.display_name)
+    .join(", ");
+  const extra = mutuals.length > 2 ? ` +${mutuals.length - 2} more` : "";
+  label = `Connected via ${names}${extra}`;
+} else {
+  label = "No mutual connections yet";
+}
+```
+
+<Note>
+  The mutual connections count is also reflected in each user's `network_size` field on their profile object. The `GET /v1/network/mutual/:userId` endpoint provides the full details of those shared connections, enabling richer UI beyond a simple count.
+</Note>
+
+## Error Reference
+
+| Status | Cause |
+|--------|-------|
+| `401 Unauthorized` | Missing or invalid Bearer token |
+| `404 Not Found` | No user found with the given `userId` |

@@ -1,0 +1,130 @@
+---
+title: "How Payments Work on Roomie: Paystack Integration"
+sidebarTitle: "Payments"
+description: "Understand how Roomie processes payments via Paystack, including agreement fees, bill splits, automatic routing, and deposit refunds."
+---
+
+Every financial transaction on Roomie — from confirming a roommate agreement to settling your share of the monthly electricity bill — runs through **Paystack**, Nigeria's leading payment infrastructure. Roomie never handles your money directly. Instead, Paystack acts as the secure intermediary that initiates charges, routes funds to the correct parties, and sends Roomie a real-time confirmation when a payment succeeds. This means your bank details stay protected, and every payment status you see in the app reflects an actual, verified transaction.
+
+## Payment Types on Roomie
+
+Roomie processes two categories of payments:
+
+| Payment Type | Amount | Who Pays | When |
+|---|---|---|---|
+| **Roommate Agreement fee** | ₦2,000 (one-time) | Accepting user | After both parties co-sign the agreement |
+| **Bill split settlement** | Your share of each bill | Each roommate individually | When you tap **Pay My Share** on a split |
+
+All amounts are displayed in Nigerian Naira (₦). Internally, Roomie stores values in kobo for precision, but you will always see and enter amounts in naira.
+
+## The ₦2,000 Roommate Agreement Fee
+
+When you and your roommate co-sign a Roommate Agreement, the accepting user (the person who received and accepted the original connection request) is prompted to pay a one-time ₦2,000 fee. This fee is not a subscription — it is a single, per-agreement charge that:
+
+- Confirms the partnership and locks in both co-signatures
+- Awards the **Roomie Partner** badge to both users
+- Unlocks the **Vetted Housing Catalog** for the partnership
+- Activates the **Expense Splitter** shared ledger
+
+The initiating user does not pay this fee. If you have multiple confirmed agreements (e.g., in a Roomie Pool), the fee is paid once per agreement, not per user.
+
+See [Roommate Agreements](/guides/roommate-agreements) for the full agreement creation walkthrough.
+
+## How Bill Split Payments Are Routed
+
+When you pay your share of a bill split, Roomie uses the **Paystack Subaccount API** to route the payment directly to the correct party. Each roommate's share is processed as a separate, independent Paystack transaction — so you are only ever charged your portion, and funds go straight to the right destination without passing through a shared pool.
+
+This architecture means:
+
+- You pay your share; your roommate pays theirs — neither of you has to front the full amount and chase a reimbursement
+- Payments are traceable: each transaction has a unique Paystack reference tied to the specific bill split item
+- Refunds (e.g., security deposit returns) are automatically calculated in your exact split ratio and routed to each roommate's account separately
+
+## Pay a Bill Split: Step-by-Step
+
+<Steps>
+  <Step title="Open the split">
+    Go to **Splits** in the partnership dashboard or chat thread and tap the bill split you want to settle. You will see your share, the due date, and the current payment status.
+  </Step>
+  <Step title="Tap 'Pay My Share'">
+    Tap the **Pay My Share** button on the split card. A Paystack payment sheet opens directly within the app.
+  </Step>
+  <Step title="Choose your payment method">
+    Paystack supports the following methods — select whichever works best for you:
+    - **Debit/Credit card** — Visa, Mastercard, Verve
+    - **Bank transfer** — transfer to a generated account number
+    - **USSD** — dial a shortcode from any phone
+  </Step>
+  <Step title="Authorise the payment">
+    Complete the Paystack checkout. If your card requires OTP or 3D Secure authentication, follow the prompt from your bank. For bank transfers, send the exact amount to the account number displayed — the reference number on the transfer is pre-filled to match your split.
+  </Step>
+  <Step title="Payment confirmed automatically">
+    Paystack sends a **webhook** to Roomie the moment your payment is verified. You do not need to manually mark it as paid or refresh the page. The split card updates to **Settled** in real time, and a PDF receipt is generated for your records.
+  </Step>
+</Steps>
+
+## How Payment Confirmation Works
+
+Roomie uses **Paystack webhooks** to confirm payments automatically. Here is what happens behind the scenes:
+
+1. You complete the Paystack checkout
+2. Paystack sends a signed event to Roomie's backend (`charge.success`)
+3. Roomie verifies the webhook signature and matches the reference to your bill split item
+4. The split item status updates from `PENDING` to `SETTLED`
+5. If it is a rent split, Roomie checks whether your roommate has also paid — if both shares are settled, the overall rent status updates to **Cleared**
+
+This process typically completes within a few seconds. If you do not see your status update after 60 seconds, try pulling down to refresh the Splits tab.
+
+## Deposit Refunds on Checkout
+
+When you and your roommate move out of a property, Roomie's **Checkout Consent** workflow ensures your security deposit is returned fairly:
+
+1. Either roommate initiates a checkout request in the app, setting a move-out date and completing a checklist (bills settled, keys returned, no damages)
+2. The other roommate reviews the request and approves or rejects it
+3. Once both parties approve, the checkout status updates to **Approved**
+4. The housing platform is notified via webhook, which triggers an automated deposit refund split in your **exact stored ratio**
+5. Each roommate's refund is routed directly to their individual account via Paystack — no manual splitting, no waiting for one person to transfer the other
+
+<Warning>
+  Do **not** arrange deposit refunds, rent payments, or any shared housing payments outside the Roomie app. Payments made via direct bank transfer or third-party apps cannot be verified, tracked, or protected by Roomie. If a dispute arises over an off-platform payment, Roomie cannot mediate or reverse it.
+</Warning>
+
+## View Payment History and Download Receipts
+
+To see a record of all your payments:
+
+1. Go to **Splits → History** in your partnership dashboard
+2. Tap any settled split to open the detail view
+3. Tap **View Receipt** to open the PDF receipt
+4. Tap **Download** to save it to your device
+
+Receipts include the bill title, your share amount, the Paystack transaction reference, and the exact timestamp of confirmation.
+
+You can also view your full payment history across all partnerships from **Profile → Payment History**.
+
+## Supported Payment Methods
+
+Roomie supports all payment methods available through Paystack:
+
+| Method | How to use |
+|---|---|
+| **Debit / Credit card** | Enter your card details in the Paystack sheet; supports Visa, Mastercard, and Verve |
+| **Bank transfer** | A virtual account number is generated for each transaction; transfer the exact amount |
+| **USSD** | Select your bank, then dial the displayed shortcode on any mobile phone — no internet required |
+
+<Note>
+  USSD payments are a great fallback if you have poor internet connectivity. Roomie's network stability cache keeps your split visible offline, and the payment status syncs as soon as you reconnect.
+</Note>
+
+## If a Payment Fails or Doesn't Reflect
+
+If your payment was deducted but the split still shows **Pending**, or if the Paystack checkout returned an error:
+
+1. **Wait 2–3 minutes** — webhook delivery can occasionally be delayed by network conditions
+2. **Pull down to refresh** the Splits tab to trigger a manual status check
+3. **Check your bank statement** — confirm whether the deduction actually went through
+4. **Contact support** — if your bank confirms the debit but the split still shows Pending after 10 minutes, reach out via **Help → Contact Support** with your Paystack transaction reference. The support team can manually verify the webhook and update your status.
+
+<Warning>
+  Never attempt to pay a split twice to force a status update. Duplicate payments are not automatically refunded and will require a manual reversal by the support team.
+</Warning>

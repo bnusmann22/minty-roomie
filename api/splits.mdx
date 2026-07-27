@@ -1,0 +1,186 @@
+---
+title: "Create and Manage Bill Splits on the Roomie API"
+sidebarTitle: "Splits"
+description: "Split shared expenses like rent, utilities, and wifi between confirmed roommates, with support for custom ratios and recurring monthly billing."
+---
+
+The Roomie bill splitter is the shared financial ledger for confirmed roommate pairs. Once a roommate agreement is confirmed, either partner can create bill splits for any shared expense — rent, electricity, wifi, security deposit, or any other co-living cost. Splits can be one-off or recurring, and can use a custom ratio instead of the default 50/50 division. Paystack powers the underlying payment collection, and each roommate settles their share independently.
+
+## POST /v1/splits
+
+Create a new bill split between two confirmed roommates. The split is immediately visible in both users' chat thread and triggers a notification to the co-roommate.
+
+### Authentication
+
+Requires a valid Bearer token. The authenticated user must be a participant of the referenced connection, and that connection must have a `CONFIRMED` agreement.
+
+### Request Body
+
+<ParamField body="connection_id" type="string" required>
+  UUID of the confirmed roommate connection this split belongs to.
+</ParamField>
+
+<ParamField body="title" type="string" required>
+  A human-readable label for the expense (e.g., `"November Rent"`, `"Wifi Bill"`, `"Security Deposit"`).
+</ParamField>
+
+<ParamField body="amount" type="integer" required>
+  Total bill amount **in kobo** (the smallest unit of Nigerian Naira). For example, ₦50,000 is represented as `5000000`. Using kobo avoids floating-point precision issues in payment processing.
+</ParamField>
+
+<ParamField body="split_ratio" type="object">
+  Custom split percentages as decimal fractions that must sum to `1.0`. If omitted, defaults to an equal 50/50 split.
+
+  ```json
+  { "initiator": 0.6, "acceptor": 0.4 }
+  ```
+</ParamField>
+
+<ParamField body="due_date" type="string">
+  ISO 8601 date string (e.g., `"2025-12-01"`) by which both roommates should settle their share. Used for reminders and the `GOOD_PAYER` badge evaluation.
+</ParamField>
+
+<ParamField body="is_recurring" type="boolean">
+  Set to `true` to create a recurring monthly split. When `true`, `billing_day` is required.
+</ParamField>
+
+<ParamField body="billing_day" type="integer">
+  Day of the month (1–28) on which the recurring split triggers automatically. Required when `is_recurring` is `true`.
+</ParamField>
+
+<CodeGroup>
+```bash One-off split (cURL)
+curl -X POST https://api.roomie.app/v1/splits \
+  -H "Authorization: Bearer <your_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "connection_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "title": "November Rent",
+    "amount": 40000000,
+    "split_ratio": { "initiator": 0.5, "acceptor": 0.5 },
+    "due_date": "2025-11-30"
+  }'
+```
+
+```bash Recurring split (cURL)
+curl -X POST https://api.roomie.app/v1/splits \
+  -H "Authorization: Bearer <your_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "connection_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "title": "Monthly Wifi",
+    "amount": 1500000,
+    "is_recurring": true,
+    "billing_day": 5
+  }'
+```
+
+```typescript fetch
+const res = await fetch("https://api.roomie.app/v1/splits", {
+  method: "POST",
+  headers: {
+    Authorization: `Bearer ${access_token}`,
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    connection_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    title: "November Rent",
+    amount: 40000000,       // ₦400,000 in kobo
+    split_ratio: { initiator: 0.5, acceptor: 0.5 },
+    due_date: "2025-11-30",
+  }),
+});
+
+const split = await res.json();
+```
+</CodeGroup>
+
+### Response `201 Created`
+
+```json
+{
+  "id": "bb12cc34-dd56-7890-eeff-001122334455",
+  "connection_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "title": "November Rent",
+  "amount": 40000000,
+  "split_ratio": {
+    "initiator": 0.5,
+    "acceptor": 0.5
+  },
+  "due_date": "2025-11-30",
+  "is_recurring": false,
+  "billing_day": null,
+  "items": [
+    {
+      "id": "item-uuid-001",
+      "user_id": "3f7e2d1a-bc44-4e91-b9f3-123456789abc",
+      "amount_due": 20000000,
+      "status": "UNPAID",
+      "payment_url": "https://checkout.paystack.com/split-initiator-link"
+    },
+    {
+      "id": "item-uuid-002",
+      "user_id": "8c4b1f22-de91-4a73-bc01-abcdef012345",
+      "amount_due": 20000000,
+      "status": "UNPAID",
+      "payment_url": "https://checkout.paystack.com/split-acceptor-link"
+    }
+  ],
+  "created_at": "2025-11-14T14:00:00Z"
+}
+```
+
+<ResponseField name="id" type="string">
+  UUID of the newly created bill split.
+</ResponseField>
+
+<ResponseField name="amount" type="integer">
+  Total bill amount in kobo.
+</ResponseField>
+
+<ResponseField name="split_ratio" type="object">
+  The ratio applied to this split. Both values are decimal fractions summing to `1.0`.
+</ResponseField>
+
+<ResponseField name="items" type="array of objects">
+  Individual payment obligations for each roommate. Each item includes:
+
+  - `user_id` — the roommate responsible for this portion
+  - `amount_due` — their share in kobo
+  - `status` — `"UNPAID"`, `"PAID"`, or `"OVERDUE"`
+  - `payment_url` — Paystack checkout link for their portion
+</ResponseField>
+
+<Note>
+  Amounts are denominated in **kobo** throughout the API. Always multiply Naira amounts by 100 before sending, and divide by 100 when displaying to users. For example, ₦400,000 rent = `40000000` kobo.
+</Note>
+
+## Split Payment Flow
+
+```
+POST /v1/splits  ──► Both roommates receive Paystack payment links
+                              │
+           ┌──────────────────┴──────────────────┐
+           ▼                                     ▼
+  Roommate A pays share               Roommate B pays share
+  (Paystack webhook fires)            (Paystack webhook fires)
+           │                                     │
+           └──────────────────┬──────────────────┘
+                              ▼
+                    Both items = "PAID"
+                    Split marked SETTLED
+              (GOOD_PAYER badge eligibility evaluated)
+```
+
+<Note>
+  Settling a split item within 48 hours of creation counts toward the **On-Time Payer** (`GOOD_PAYER`) badge. Five consecutive on-time payments earn the badge permanently.
+</Note>
+
+## Error Reference
+
+| Status | Cause |
+|--------|-------|
+| `400 Bad Request` | `amount` is not a positive integer, `split_ratio` values do not sum to `1.0`, or `billing_day` is out of range (1–28) |
+| `401 Unauthorized` | Missing or invalid Bearer token |
+| `403 Forbidden` | No confirmed agreement exists for this connection, or authenticated user is not a participant |
+| `404 Not Found` | Connection with `connection_id` does not exist |
